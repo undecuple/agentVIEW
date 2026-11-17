@@ -26,3 +26,6 @@ See `NOTICE.md`. Licence texts for the Rust crates and the AppImage runtime are 
 
 ## Licence
 MIT, see `LICENSE`.
+
+## Known issues
+- Dependabot alert GHSA-wrw7-89jp-8q8g (medium): unsoundness in `glib::VariantStrIter` iterators. `glib` 0.18.5 comes in through the Tauri and GTK dependencies and the fix is in `glib` 0.20 or later, which needs a Tauri update. This project's own code does not use `VariantStrIter` (searched the sources); whether the dependencies call it is not checked.
