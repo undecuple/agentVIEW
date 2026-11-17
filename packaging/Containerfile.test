@@ -1,0 +1,3 @@
+# Test environment: the build image plus a virtual display and a screenshot tool. Used only by scripts/test-appimage.sh.
+FROM localhost/agent-app-build:jammy
+RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth imagemagick dbus-x11 && rm -rf /var/lib/apt/lists/*

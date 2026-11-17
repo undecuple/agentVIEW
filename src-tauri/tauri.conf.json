@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "agent-app",
+  "version": "0.1.0",
+  "identifier": "local.agentapp.viewer",
+  "build": { "frontendDist": "../dist" },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'",
+      "assetProtocol": { "enable": false }
+    }
+  },
+  "bundle": { "active": false }
+}

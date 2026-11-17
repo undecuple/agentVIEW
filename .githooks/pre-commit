@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Setup: git config core.hooksPath .githooks
+# --no-verify skips this hook; the CI workflow runs the same scan as a backstop.
+root=$(git rev-parse --show-toplevel)
+git diff --cached --name-only -z --diff-filter=ACMRT | "$root/scripts/scan-files.sh" ""

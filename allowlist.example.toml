@@ -1,0 +1,11 @@
+# Read-only path allow-list for the viewer. Copy to ~/.config/agent-app/allowlist.toml and edit.
+# List files, not whole trees, where possible. The viewer never writes to these paths.
+# Rule order: resolve realpath (follow symlinks), then apply deny rules, then check the allow list.
+allow = [
+  "~/notes/README.md",
+  "~/notes/decisions.md",
+  "~/work-log/gate-log.md",
+]
+deny_names = ["work", "library", "build", ".config", ".env", "credentials*", "*token*",
+              "*.key", "*.pem", "*.bin", "*.iso"]
+deny_note = "Keys, credentials and build folders are never read or rendered. Symlinks are resolved before deny rules."

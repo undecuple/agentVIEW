@@ -1,0 +1,32 @@
+# agent-app spec
+
+A local, read-only viewer for notes, gate status, diffs and images, built as a small desktop app. MIT licence.
+
+## Rules the app keeps
+- It never grants an approval. An approvals view shows what a person must decide and where they decide it.
+- Credentials: the app shows names and where a secret lives, never the value, in the UI, logs or repo. In the viewer this is enforced by deny rules on file names plus a best-effort redaction of obvious token shapes in displayed text. Redaction is not a guarantee, so secrets must not sit in allow-listed files.
+- Read-only path allow-list. Paths are resolved with realpath (symlinks followed) before the deny rules, then checked against a list of files, not whole trees. Keys, credentials and build folders are denied. A diff view never renders a denied file.
+- It does not run Claude Code or Codex. A later version could do so only as the user's own sessions with existing permission modes.
+- No server beyond localhost. Files or SQLite, no database server until a need is shown.
+- Synthetic data only in tests and screenshots.
+
+## First milestone: read-only viewer
+Views: shared docs, gate status (from a gate log file), recent file changes with diffs, images.
+Data sources: files under an explicit allow-list in a config file. No writes anywhere except its own cache.
+Done when: it starts, lists the allow-listed docs, shows a diff of a synthetic file, and a test proves an excluded path is refused.
+
+## Later, not started
+Pending PR and approval views, sandbox settings, subagent activity, session driving.
+
+## Image support
+The viewer shows images from allow-listed paths. Same realpath, deny and allow-list policy as text; raster types only (png, jpg, gif, webp) checked by file signature, no SVG; served as images with `nosniff` and a CSP that allows only same-origin images; no image from a denied folder. `/img` serves files up to 5 MB, 16384 px a side and 16 megapixels, after a signature, extension and header-size check. Files over the cap are refused, never cut. No decoding, and no metadata (EXIF, text chunks) is read or shown. A doc page shows images referenced by relative markdown links only when they pass the same path policy; http, absolute, `~`, `data:` and denied-folder references are listed as not shown.
+
+## Viewer limits
+/view is capped at 1 MB and /gate at 16 MB, each with a visible "Truncated" notice. /diff reads 200 KB per file and prints at most 2000 lines. The gate list is a best-effort text parse and says so on the page; an empty list does not mean nothing is pending. Files are opened without following symlinks and checked against the path that passed the policy.
+
+## Gate log order
+The gate parse assumes the log lists rows newest first. A row is closed only by a row above it. If the file is ordered the other way, approved items show as pending.
+
+## Running the viewer (stdlib only, Python 3.11+)
+`cp allowlist.example.toml allowlist.toml`, then `python3 viewer/server.py --gate-file <path-to-gate-log>` and open http://127.0.0.1:8765/. Tests: `python3 -I -m unittest discover -s tests`.
+After cloning run `git config core.hooksPath .githooks`. The hook can be skipped, so `.github/workflows/ci.yml` runs the same scan (`scripts/scan-files.sh`) on every commit, plus an identity and attribution-line check and the tests.

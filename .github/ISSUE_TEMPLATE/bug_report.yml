@@ -1,0 +1,26 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Do not attach keys, tokens or personal files. Remove your user name and home-folder paths from any log.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Version (release or commit)
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Linux distribution, WebKitGTK version
+    validations:
+      required: true
