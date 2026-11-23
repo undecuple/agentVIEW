@@ -155,7 +155,7 @@ impl SessionManager {
             }
         }self.usage_snapshot()
     }
-    fn usage_location(&self,session:&SessionInfo,roots:&UsageRoots)->Result<(PathBuf,PathBuf)>{
+    pub(crate) fn usage_location(&self,session:&SessionInfo,roots:&UsageRoots)->Result<(PathBuf,PathBuf)>{
         if !session.attempted{return Err("not_started".into());}
         let native=session.provider_session_id.as_deref().ok_or("not_started")?;
         codex::validate_uuid(native).map_err(|_|"identity_mismatch")?;

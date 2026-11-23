@@ -9,7 +9,7 @@ const CAP: usize = 256 * 1024;
 const REFUSED: &str = "That file is not available for review";
 
 #[derive(Serialize)]
-pub struct ReviewFile { path: String, name: String }
+pub struct ReviewFile { path: String, name: String, status: &'static str, reviewed_at: Option<String> }
 #[derive(Serialize)]
 pub struct ReviewView {
     path: String, name: String, html: String, sha256: String,
@@ -27,12 +27,29 @@ fn load(window: &tauri::WebviewWindow, cfg: &Config, state: &super::WorkspaceSta
     Ok(ReviewView { name: policy::short(&key), path: key, html: markdown::render(&text), sha256: sha, review, stale, required_checks: REQUIRED_CHECKS.to_vec() })
 }
 
+/// The review queue: every allow-listed draft with its state. Waiting items (pending, then stale) come first.
 #[tauri::command]
-pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>) -> Result<Vec<ReviewFile>, String> {
+pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>) -> Result<Vec<ReviewFile>, String> {
     super::authorized(&window)?;
-    Ok(policy::listing(&cfg).into_iter()
-        .filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "md" | "markdown" | "txt")))
-        .take(500).map(|p| { let path = p.to_string_lossy().into_owned(); ReviewFile { name: policy::short(&path), path } }).collect())
+    let mut queue = Vec::new();
+    for p in policy::listing(&cfg).into_iter().take(500) {
+        if !p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "md" | "markdown" | "txt")) { continue; }
+        let path = p.to_string_lossy().into_owned();
+        let Ok((real, bytes, more)) = policy::read_bytes(&path, &cfg, CAP) else { continue };
+        if more { continue; }
+        let key = real.to_string_lossy().into_owned();
+        let sha = markdown::sha256_hex(&bytes);
+        let review = super::with_store(&window, &state, |s| s.review_get(&key))?;
+        let (status, reviewed_at) = match review {
+            None => ("pending", None),
+            Some(r) if r.sha256 != sha => ("stale", Some(r.reviewed_at)),
+            Some(r) => ("pass", Some(r.reviewed_at)),
+        };
+        queue.push(ReviewFile { name: policy::short(&key), path: key, status, reviewed_at });
+    }
+    let rank = |s: &str| match s { "pending" => 0, "stale" => 1, _ => 2 };
+    queue.sort_by(|a, b| rank(a.status).cmp(&rank(b.status)).then_with(|| a.name.cmp(&b.name)));
+    Ok(queue)
 }
 
 #[tauri::command]

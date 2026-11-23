@@ -6,6 +6,7 @@ use std::{io::Read, path::PathBuf, process::{Command, Stdio}, sync::{Arc,Mutex,a
 #[derive(Default)]
 pub struct LiveState {
     manager: Arc<Mutex<Option<SessionManager>>>,
+    usage: Arc<Mutex<Option<agent_app_sessions::UsageView>>>,
     cancel: Arc<AtomicBool>,
     closing: Arc<AtomicBool>,
 }
@@ -24,6 +25,19 @@ async fn manager<T:Send+'static>(window:tauri::WebviewWindow,state:&LiveState,f:
         if closing.load(Ordering::Acquire){return Err("Workspace close requested; no terminal input was replayed".into());}
         result
     }).await.map_err(|_| "Session operation failed")?
+}
+/// Usage reads run on their own SQLite connection and lock, so a long refresh never delays terminal reads.
+/// The main manager is opened first (it owns migrations and the instance lease); the view only attaches to its store.
+async fn usage_view<T:Send+'static>(window:tauri::WebviewWindow,state:&LiveState,f:impl FnOnce(&mut agent_app_sessions::UsageView)->Result<T,String>+Send+'static)->Result<T,String>{
+    super::authorized(&window)?;
+    manager(window.clone(),state,|_|Ok(())).await?;
+    let shared=Arc::clone(&state.usage);let cancel=Arc::clone(&state.cancel);let closing=Arc::clone(&state.closing);
+    tauri::async_runtime::spawn_blocking(move||{
+        let mut guard=shared.lock().map_err(|_| "Usage reader lock failed")?;
+        if closing.load(Ordering::Acquire){return Err("Workspace is closing; no usage action was performed".into());}
+        if guard.is_none(){let mut u=SessionManager::open_usage_view(&super::app_data_dir()?.join("sessions"))?;u.set_cancel_flag(Arc::clone(&cancel));*guard=Some(u);}
+        f(guard.as_mut().ok_or("Usage reader unavailable")?)
+    }).await.map_err(|_| "Usage operation failed")?
 }
 fn executable(provider:Provider)->Result<PathBuf,String>{
     #[cfg(feature="workspace-e2e")]
@@ -72,6 +86,8 @@ pub async fn live_set_remote(window:tauri::WebviewWindow,state:tauri::State<'_,L
 #[tauri::command]
 pub async fn live_rename(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String,label:String)->Result<SessionInfo,String>{manager(window,&state,move|m|m.rename(&id,&label)).await}
 #[tauri::command]
+pub async fn live_activity(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<agent_app_sessions::Activity>,String>{manager(window,&state,|m|m.activity(&usage_roots())).await}
+#[tauri::command]
 pub async fn live_snapshot(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<SessionInfo>,String>{manager(window,&state,|m|m.list()).await}
 // Roots are native configuration paths, never arbitrary paths supplied by web content.
 // Resolving a root reads no credentials, session content or provider configuration.
@@ -88,11 +104,11 @@ fn usage_roots()->agent_app_sessions::UsageRoots {
 }
 #[tauri::command]
 pub async fn usage_snapshot(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<agent_app_sessions::UsageSnapshot,String>{
-    manager(window,&state,|m|m.usage_snapshot()).await
+    usage_view(window,&state,|u|u.usage_snapshot()).await
 }
 #[tauri::command]
 pub async fn usage_refresh(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<agent_app_sessions::UsageSnapshot,String>{
-    manager(window,&state,|m|m.refresh_usage(&usage_roots())).await
+    usage_view(window,&state,|u|u.refresh_usage(&usage_roots())).await
 }
 #[tauri::command]
 pub async fn live_create(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,provider:String,label:String,project_dir:String)->Result<SessionInfo,String>{

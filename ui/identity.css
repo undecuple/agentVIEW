@@ -18,3 +18,40 @@ h1::before{content:"▌";color:var(--accent,#5ea1ff);margin-right:.4ch;font-weig
 .review-badge{font-family:var(--mono);font-size:12px;padding:3px 8px;border:1px solid var(--line)}.review-badge[data-state=pass]{color:var(--green);border-color:var(--green)}.review-badge[data-state=stale]{color:var(--yellow);border-color:var(--yellow)}
 #review-checks{display:grid;gap:8px}
 .md h2{font-size:20px}.md h3{font-size:17px}.md h4,.md h5,.md h6{font-size:14px}.review-panel .inline-form>label{flex-direction:column;align-items:flex-start;gap:4px}#review-checks .check-label{padding:2px 0}
+/* MNGR-inspired palette (dark only): violet-tinted near-black, violet accent, dotted-grid canvas, outlined buttons */
+:root:not([data-theme=light]){--bg:#0c0a12;--surface:#14121b;--surface-2:#1c1925;--line:#2a2635;--line-strong:#3d3656;--text:#ebe9f2;--muted:#8d88a0;--accent:#8f74ff;--pink:#a78bfa;--purple:#a78bfa;--accent-soft:#241d3f}
+:root:not([data-theme=light]) body{background-image:radial-gradient(circle at 50% -10%,#1d1534 0,transparent 55%)}
+:root:not([data-theme=light]) #live-terminal,:root:not([data-theme=light]) .review-panel .md{background-image:radial-gradient(#2a2640 1px,transparent 1px);background-size:18px 18px}
+:root:not([data-theme=light]) button:not(:disabled):hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.settings-panel button,.live-panel button,.controls button{font-family:var(--mono);font-size:11px;letter-spacing:.2px}
+#settings-save{background:var(--accent)}
+.review-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}.review-queue{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto}.review-queue button{display:flex;width:100%;gap:12px;justify-content:space-between;text-align:left;border:1px solid var(--line);background:transparent;color:var(--text);padding:8px 10px}.review-queue .q-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.review-queue .q-status{font-family:var(--mono);font-size:11px;flex-shrink:0;color:var(--muted)}.review-queue button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}.review-queue button[data-status=pass] .q-status{color:var(--green)}.review-queue button[data-status=stale] .q-status{color:var(--yellow)}
+/* Collapsible sidebar: icons only */
+.rail-toggle{align-self:flex-end;background:transparent;border:1px solid var(--line);color:var(--muted);padding:2px 8px;margin:10px 0 0;font-family:var(--mono)}
+.rail,main{transition:width .15s,margin-left .15s}
+body[data-rail=collapsed] .rail{width:62px;padding:24px 8px}
+body[data-rail=collapsed] main{margin-left:62px}
+body[data-rail=collapsed] .brand>span:last-child,body[data-rail=collapsed] .workspace-label>div,body[data-rail=collapsed] .workspace-label .chevron,body[data-rail=collapsed] .nav-label,body[data-rail=collapsed] .rail-bottom small,body[data-rail=collapsed] .rail-bottom>span:not(.status-dot),body[data-rail=collapsed] .nav-text,body[data-rail=collapsed] .nav-count,body[data-rail=collapsed] .outward{display:none}
+body[data-rail=collapsed] .brand{margin:0 5px 24px}
+body[data-rail=collapsed] .workspace-label{justify-content:center;padding:8px 0}
+body[data-rail=collapsed] .nav-item{justify-content:center;padding:12px 0}
+body[data-rail=collapsed] .rail-toggle{align-self:center}
+body[data-rail=collapsed] .rail-bottom{padding:20px 0 0;text-align:center;font-size:0}
+.overview-panel .ov-scroll{overflow:auto;border:1px solid var(--line);margin-top:8px}.overview-panel table{border-collapse:collapse;width:100%;font-size:12px}.overview-panel th,.overview-panel td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}.overview-panel th{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:500}.overview-panel .ov-name{font-weight:600}.overview-panel .ov-run{color:var(--green)}.overview-panel .ov-stop{color:var(--muted)}#ov-body td:nth-child(5){font-family:var(--mono);font-size:11px;white-space:nowrap}.overview-panel .inline-form label{flex-direction:column;align-items:flex-start;gap:4px}
+/* Kestra-app-inspired refinement (dark only): cool blue-slate surfaces sampled from the product UI, violet reserved for primary actions and the active state */
+:root:not([data-theme=light]){--bg:#13181f;--surface:#1a1e27;--surface-2:#262b37;--line:#2d3340;--line-strong:#434b5e;--text:#e9ebf1;--muted:#8d95a8;--accent:#9562f5;--pink:#b79bff;--purple:#b79bff;--magenta:#ff2d95;--accent-soft:#2b2450}
+:root:not([data-theme=light]) body{background-image:none}
+:root:not([data-theme=light]) .rail{background:#171b23}
+:root:not([data-theme=light]) h1::before{color:var(--magenta)}
+.summary,.settings-panel,.usage-panel,fieldset,.live-session,.deck,.workspace-label,.review-panel .md,.review-queue button,.remote-box,.ov-scroll,.overview-panel .ov-scroll{border-radius:8px}
+button,input,select,textarea,.nav-item{border-radius:6px}
+.local-pill,.demo-pill,.review-badge,.nav-count,.queue-badge{border-radius:999px}
+.nav-item{border-left:0;padding:9px 10px}
+.nav-item.active{background:#2e3341;color:#fff;box-shadow:none}
+.nav-item.active>span:first-child{color:var(--accent)}
+.nav-label{margin:22px 10px 8px}
+#settings-save,#review-save:not(:disabled),#live-start:not(:disabled),#live-create:not(:disabled),.live-panel button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+:root:not([data-theme=light]) button:not(:disabled):hover{border-color:var(--accent);box-shadow:none}
+.status-dot{box-shadow:0 0 6px var(--green)}
+.review-queue button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);box-shadow:none}
+:root:not([data-theme=light]) #live-terminal,:root:not([data-theme=light]) .review-panel .md{background-image:radial-gradient(#262c3a 1px,transparent 1px);background-size:18px 18px}

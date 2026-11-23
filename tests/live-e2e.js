@@ -148,6 +148,22 @@
         await until(async()=>(await output(s)).includes(`ACK remember-${s.label}`),'accepted terminal input stays bound across tab switches');
         await invoke('live_resize',{id:s.id,generation:s.generation,cols:90,rows:30});
       }
+      { // All-agents overview: observed data only
+        $('show-overview').click();
+        await until(()=>$('ov-body').children.length===2,'overview lists both registered sessions');
+        const rowFor=s=>$('ov-body').querySelector(`tr[data-id="${s.id}"]`);
+        assert(sessions.every(s=>rowFor(s)&&rowFor(s).dataset.running==='true'&&/^Running/.test(rowFor(s).children[1].textContent)),'overview shows both as running');
+        assert(/KB|B\/s out/.test(rowFor(sessions[0]).children[4].textContent)&&/in/.test(rowFor(sessions[0]).children[4].textContent),'terminal data flow shown as out and in');
+        const cx=sessions.find(s=>s.provider==='codex');assert(/Not reported by Codex/.test(rowFor(cx).children[3].textContent),'Codex action is not invented');
+        const ap=sessions.find(s=>s.provider==='claude');assert(/No tool use seen yet|·/.test(rowFor(ap).children[3].textContent),'Claude action is a tool name or says none seen');
+        $('ov-provider').value='codex';$('ov-provider').dispatchEvent(new Event('input'));
+        assert($('ov-body').children.length===1&&$('ov-body').children[0].dataset.id===cx.id,'provider filter works');
+        $('ov-provider').value='';$('ov-text').value='zzzz-no-match';$('ov-text').dispatchEvent(new Event('input'));
+        assert($('ov-body').children.length===0&&/0 shown of 2/.test($('ov-summary').textContent),'text filter narrows to nothing');
+        $('ov-text').value='';$('ov-text').dispatchEvent(new Event('input'));
+        assert(!document.querySelector('#overview').textContent.toLowerCase().includes('network bandwidth')||/not measured/.test($('overview').textContent),'network bandwidth is stated as not measured');
+        $('show-live').click();
+      }
       assert((await snapshot()).filter(s=>s.status==='running').length===2,'two project sessions coexist');
       if(!TEST_LAYOUT){await usageChecks();await terminalPreferenceChecks(sessions);}
       await select(sessions.find(s=>s.provider==='codex'));

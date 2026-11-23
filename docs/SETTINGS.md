@@ -34,7 +34,7 @@ Preset text is saved locally and excluded from diagnostics.
 
 Both themes adapt the official dark and light palettes in
 [Cyberdream](https://github.com/scottmckendry/cyberdream.nvim/blob/eafadf5712e447bb813f8f7eab8012d1391fdba2/lua/cyberdream/colors.lua).
-Primary blue is #5ea1ff in Dark and #0057d1 in Light, with matching cyan/green/
+Primary accent is violet #9562f5 on blue-slate #13181f in Dark (identity.css) and blue #0057d1 in Light, with matching cyan/green/
 purple/status colors. Muted text and surface shades are adjusted for application
 readability. System mode follows the OS color-scheme preference. The established
 layout and original lettering/icon geometry are retained.

@@ -13,7 +13,7 @@
     "allow-workspace-open-docs",
     "allow-live-probe",
     "allow-live-snapshot",
-    "allow-live-create", "allow-live-set-remote", "allow-live-rename", "allow-review-files", "allow-review-load", "allow-review-mark", "allow-review-clear",
+    "allow-live-create", "allow-live-set-remote", "allow-live-rename", "allow-live-activity", "allow-review-files", "allow-review-load", "allow-review-mark", "allow-review-clear",
     "allow-live-start",
     "allow-live-read",
     "allow-live-write",

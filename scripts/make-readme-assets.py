@@ -22,7 +22,7 @@ import struct
 import zlib
 
 ROOT = Path(__file__).resolve().parent.parent
-DARK_COLORS = ["#16181a", "#1e2124", "#3c4048", "#5ea1ff", "#5ef1ff", "#ffffff", "#9ba4b5"]
+DARK_COLORS = ["#0c0a12", "#14121b", "#3d3656", "#8f74ff", "#c4b5fd", "#ffffff", "#8d88a0"]
 LIGHT_COLORS = ["#ffffff", "#eaeaea", "#acacac", "#0057d1", "#008c99", "#16181a", "#596274"]
 COLORS = DARK_COLORS
 BG, PANEL, RULE, PINK, MINT, WHITE, MUTED = range(len(COLORS))

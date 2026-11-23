@@ -9,9 +9,9 @@ Intake agents, project coordinators and subagents, with durable conversations an
 
 <p align="center">
   <a href="https://github.com/undecuple/agentVIEW/actions/workflows/ci.yml"><img src="https://github.com/undecuple/agentVIEW/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI on main"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-5ef1ff?labelColor=1e2124" alt="Licence: MIT"></a>
-  <img src="https://img.shields.io/badge/platform-Linux-5ea1ff?labelColor=1e2124" alt="Platform: Linux">
-  <img src="https://img.shields.io/badge/status-foundation_preview-5ef1ff?labelColor=1e2124" alt="Status: foundation preview">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-c4b5fd?labelColor=14121b" alt="Licence: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-Linux-8f74ff?labelColor=14121b" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/status-foundation_preview-c4b5fd?labelColor=14121b" alt="Status: foundation preview">
 </p>
 
 <p align="center">

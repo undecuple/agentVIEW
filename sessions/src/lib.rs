@@ -20,6 +20,8 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 mod codex;
 pub mod usage;
+pub mod activity;
+pub use activity::Activity;
 pub use usage::{UsageDay, UsageRoots, UsageSession, UsageSnapshot, UsageTotals};
 
 pub type Result<T> = std::result::Result<T, String>;
@@ -101,9 +103,10 @@ pub struct ReadResult {
 }
 
 #[derive(Default)]
-struct Ring { bytes: VecDeque<u8>, start: u64 }
+struct Ring { bytes: VecDeque<u8>, start: u64, last_output: Option<Instant> }
 impl Ring {
     fn push(&mut self, bytes: &[u8]) {
+        self.last_output = Some(Instant::now());
         self.bytes.extend(bytes);
         if self.bytes.len() > RING_BYTES {
             let n = self.bytes.len() - RING_BYTES;
@@ -120,6 +123,7 @@ struct Running {
     stop_reader: Arc<AtomicBool>,
     reader: Option<JoinHandle<()>>,
     generation: String,
+    input_bytes: u64,
 }
 impl Running {
     fn stop(&mut self) {
@@ -158,6 +162,14 @@ impl Running {
 }
 impl Drop for Running { fn drop(&mut self) { self.stop(); } }
 
+/// Usage-only handle from [`SessionManager::open_usage_view`].
+pub struct UsageView(SessionManager);
+impl UsageView {
+    pub fn set_cancel_flag(&mut self, flag: Arc<AtomicBool>) { self.0.cancel = flag; }
+    pub fn usage_snapshot(&mut self) -> Result<UsageSnapshot> { self.0.usage_snapshot() }
+    pub fn refresh_usage(&mut self, roots: &UsageRoots) -> Result<UsageSnapshot> { self.0.refresh_usage(roots) }
+}
+
 pub struct SessionManager {
     connection: Connection,
     tools: HashMap<Provider, Tool>,
@@ -165,7 +177,7 @@ pub struct SessionManager {
     running: HashMap<String, Running>,
     // Keep the lease through cleanup. It serializes app-managed writers using
     // this metadata directory, not external provider clients or copied stores.
-    _lease: File,
+    _lease: Option<File>,
 }
 
 fn sql<T>(result: rusqlite::Result<T>) -> Result<T> {
@@ -288,7 +300,21 @@ impl SessionManager {
         sql(tx.execute("UPDATE sessions SET status='interrupted' WHERE status IN ('running','launching')", []))?;
         sql(tx.execute("UPDATE sessions SET status='bootstrap_unknown' WHERE status='bootstrapping'", []))?;
         sql(tx.commit())?;
-        Ok(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), _lease: lease })
+        Ok(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), _lease: Some(lease) })
+    }
+
+    /// A second, read-mostly view of an EXISTING session store for usage reading only. It takes no instance lease,
+    /// runs no migration or recovery, owns no processes and exposes only usage methods, so a long usage refresh
+    /// never waits on (or blocks) the main manager that serves terminals.
+    pub fn open_usage_view(directory: &Path) -> Result<UsageView> {
+        let m = fs::symlink_metadata(directory).map_err(|_| "Cannot inspect session directory")?;
+        if !m.is_dir() || m.uid() != sys::uid() || m.mode() & 0o077 != 0 { return Err("Session directory must be private, owned by you and not a symlink".into()); }
+        let db_path = directory.join("sessions.sqlite3");
+        let _db_file = private_file(&db_path)?;
+        let connection = sql(Connection::open_with_flags(&db_path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW))?;
+        sql(connection.busy_timeout(Duration::from_secs(2)))?;
+        Ok(UsageView(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), _lease: None }))
     }
 
     /// The window owner can cancel an in-progress bootstrap without acquiring
@@ -495,7 +521,7 @@ impl SessionManager {
             let reader = reader?;
             match receiver.recv() {
                 Ok(Ok(child)) => Ok(Running { child: Some(child), master, ring, stop_reader,
-                    reader: Some(reader), generation: generation.clone() }),
+                    reader: Some(reader), generation: generation.clone(), input_bytes: 0 }),
                 result => {
                     stop_reader.store(true, Ordering::Release);
                     let _ = reader.join();
@@ -548,7 +574,9 @@ impl SessionManager {
         self.generation(id, generation)?;
         if bytes.is_empty() || bytes.len() > WRITE_BYTES { return Err("Terminal input must be 1–16384 bytes".into()); }
         let run = self.running.get_mut(id).filter(|r| r.child.is_some()).ok_or("Session is not running")?;
-        run.master.write(bytes).map_err(|_| "Terminal input was not accepted; delivery may be partial, do not replay automatically".into())
+        let written = run.master.write(bytes).map_err(|_| "Terminal input was not accepted; delivery may be partial, do not replay automatically".to_string())?;
+        run.input_bytes += written as u64;
+        Ok(written)
     }
     pub fn resize(&mut self, id: &str, generation: &str, cols: u16, rows: u16) -> Result<()> {
         self.refresh()?;

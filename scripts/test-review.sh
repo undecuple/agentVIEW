@@ -19,7 +19,8 @@ The failure and its cause. <script>window.pwned=1</script>
 ## Change
 - one focused change
 MD
-printf 'allow = ["%s"]\n' "$run/drafts/pr.md" > "$run/config/allowlist.toml";chmod 600 "$run/config/allowlist.toml"
+printf "## Why\nSecond draft.\n" > "$run/drafts/second.md"
+printf 'allow = ["%s", "%s"]\n' "$run/drafts/pr.md" "$run/drafts/second.md" > "$run/config/allowlist.toml";chmod 600 "$run/config/allowlist.toml"
 export AGENT_APP_DATA_DIR="$run/data" AGENT_APP_CONFIG="$run/config/allowlist.toml" AGENT_APP_TEST_REVIEW=1
 export WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11
 for phase in first restart; do

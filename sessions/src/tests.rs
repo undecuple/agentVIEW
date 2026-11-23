@@ -337,3 +337,16 @@ fn remote_control_and_name_reach_the_cli_only_when_enabled_and_supported() {
     assert!(manager.rename(&info.id,"bad\nname").is_err());
     assert!(!manager.set_remote_control(&info.id,false).unwrap().remote_control);
 }
+
+#[test]
+fn latest_tool_reads_only_a_safe_name() {
+    let log = concat!(
+        "{\"type\":\"assistant\",\"timestamp\":\"2026-11-24T10:00:00Z\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"Read\",\"input\":{\"path\":\"/secret\"}}]}}\n",
+        "{\"type\":\"user\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"private prompt\"}]}}\n",
+        "{\"type\":\"assistant\",\"timestamp\":\"2026-11-24T10:00:05Z\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"x\"},{\"type\":\"tool_use\",\"name\":\"Bash\",\"input\":{}}]}}\n",
+        "not json\n");
+    assert_eq!(crate::activity::latest_tool(log), Some(("Bash".into(), Some("2026-11-24T10:00:05Z".into()))));
+    let bad = "{\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"rm -rf /; echo\"}]}}\n";
+    assert_eq!(crate::activity::latest_tool(bad), None);
+    assert_eq!(crate::activity::latest_tool("{\"message\":{\"content\":\"plain\"}}\n"), None);
+}

@@ -1,15 +1,17 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>agentVIEW · Agent workspace</title><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/vendor/xterm.css"><link rel="stylesheet" href="/settings.css"><link rel="stylesheet" href="/identity.css"><script defer src="/prefs.js"></script><script defer src="/vendor/xterm.js"></script><script defer src="/vendor/addon-fit.js"></script><script defer src="/workspace.js"></script><script defer src="/live.js"></script><script defer src="/usage.js"></script><script defer src="/settings.js"></script><script defer src="/review.js"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>agentVIEW · Agent workspace</title><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/vendor/xterm.css"><link rel="stylesheet" href="/settings.css"><link rel="stylesheet" href="/identity.css"><script defer src="/prefs.js"></script><script defer src="/vendor/xterm.js"></script><script defer src="/vendor/addon-fit.js"></script><script defer src="/workspace.js"></script><script defer src="/live.js"></script><script defer src="/usage.js"></script><script defer src="/settings.js"></script><script defer src="/review.js"></script><script defer src="/overview.js"></script></head>
 <body>
 <aside class="rail" aria-label="Workspace navigation">
   <a class="brand" href="/" aria-label="agentVIEW home"><img class="brand-symbol" src="/agentview.svg" alt=""><span>agent<span class="brand-light">VIEW</span></span></a>
   <div class="workspace-label"><span class="workspace-icon">R</span><div>Personal workspace<small>Local · Linux</small></div><span class="chevron">⌄</span></div>
+  <button class="rail-toggle" id="rail-toggle" type="button" aria-pressed="false" aria-label="Collapse sidebar" title="Collapse sidebar">«</button>
   <p class="nav-label">WORKSPACE</p><button class="nav-item active" id="show-agents" title="Agents and conversations" aria-label="Agents and conversations"><span>♧</span><span class="nav-text">Agents &amp; conversations</span><span class="nav-count" id="nav-count">—</span></button>
-  <button class="nav-item" id="show-live" title="Live sessions" aria-label="Live sessions"><span>⌘</span> Sessions</button>
-  <button class="nav-item" id="open-docs" title="Documents" aria-label="Documents"><span>▤</span> Documents <span class="outward">↗</span></button>
-  <button class="nav-item" id="show-review" title="Manual review of drafts" aria-label="Pre-PR review"><span>✓</span><span class="nav-text">Pre-PR review</span></button>
-  <button class="nav-item" id="show-usage" title="Token usage" aria-label="Token usage"><span>◴</span> Token usage</button>
-  <button class="nav-item" id="show-settings" title="App settings" aria-label="App settings"><span>⚙</span> Settings</button>
+  <button class="nav-item" id="show-overview" title="All agents overview" aria-label="All agents overview"><span>◫</span><span class="nav-text">Overview</span></button>
+  <button class="nav-item" id="show-live" title="Live sessions" aria-label="Live sessions"><span>⌘</span><span class="nav-text">Sessions</span></button>
+  <button class="nav-item" id="open-docs" title="Documents" aria-label="Documents"><span>▤</span><span class="nav-text">Documents</span><span class="outward">↗</span></button>
+  <p class="nav-label">TOOLS</p><button class="nav-item" id="show-review" title="Manual review of drafts" aria-label="Pre-PR review"><span>✓</span><span class="nav-text">Pre-PR review</span></button>
+  <button class="nav-item" id="show-usage" title="Token usage" aria-label="Token usage"><span>◴</span><span class="nav-text">Token usage</span></button>
+  <p class="nav-label">APP</p><button class="nav-item" id="show-settings" title="App settings" aria-label="App settings"><span>⚙</span><span class="nav-text">Settings</span></button>
   <div class="rail-bottom"><span class="status-dot"></span> Local storage<small>Conversations saved on this device</small></div>
 </aside>
 <main>
@@ -30,10 +32,19 @@
     <p class="muted">Input includes cache reads and writes where reported; cache columns are subsets, not extra tokens. Within complete source measurements, total is input + output. Missing fields stay Unavailable. Columns with different session coverage may not add together; summaries are reported subtotals.</p>
     <details class="usage-boundaries"><summary>Sources, coverage &amp; billing</summary><p>Refresh reads only exact app-managed native session records, locally and without starting a CLI. Source labels and check times are shown per session. Saved values remain historical when a source is missing or unreadable. Subagent records and unrelated Zellij sessions are outside this view.</p><p>Token counts do not establish subscription limits or charges. Subscription usage: Unavailable · API spend: Unavailable · Estimated cost: Unavailable. No credential access or billing request is made.</p></details>
   </section>
+  <section id="overview" class="settings-panel overview-panel" hidden aria-label="All agents overview">
+    <div class="panel-title"><h2>All agents</h2><span id="ov-updated" class="muted"></span></div>
+    <p class="muted">Registered sessions with what can actually be observed: process state, terminal data flow, token totals from local usage records, and the latest tool name Claude Code reports. Goals are the names and projects you set. Sub-agents run inside a provider session and are not visible to this app. Network bandwidth is not measured.</p>
+    <div class="inline-form" role="group" aria-label="Filters"><label>Provider<select id="ov-provider"><option value="">All</option><option value="claude">Claude Code</option><option value="codex">Codex</option></select></label><label>State<select id="ov-state"><option value="">All</option><option value="running">Running</option><option value="idle">Not running</option></select></label><label>Project or name<input id="ov-text" maxlength="60" autocomplete="off" placeholder="filter text"></label><label>Sort<select id="ov-sort"><option value="activity">Recent activity</option><option value="name">Name</option><option value="flow">Data flow</option><option value="tokens">Tokens</option></select></label></div>
+    <p id="ov-summary" class="muted" role="status"></p>
+    <div class="ov-scroll"><table id="ov-table"><thead><tr><th>Agent</th><th>State</th><th>Goal (name · project)</th><th>Current action</th><th>Data flow (out / in)</th><th>Tokens</th></tr></thead><tbody id="ov-body"></tbody></table></div>
+  </section>
   <section id="review" class="settings-panel review-panel" hidden aria-label="Pre-PR review">
     <div class="panel-title"><h2>Pre-PR review</h2><button id="close-review" type="button">Back</button></div>
     <p class="muted">Read the draft as it will appear, tick each check, then save PASS (manual review). The label is your own note tied to this exact text: if the file changes it shows as stale. It is not a gate approval and grants nothing.</p>
-    <div class="inline-form"><label>Draft<select id="review-file"></select></label><button id="review-reload" type="button">Reload</button><span id="review-status" class="review-badge" role="status"></span></div>
+    <div class="review-head"><strong id="review-count">Queue</strong><button id="review-reload" type="button">Reload queue</button><button id="review-next" type="button" disabled>Next waiting</button></div>
+    <ol id="review-queue" class="review-queue" aria-label="Drafts waiting for review"></ol>
+    <div class="inline-form"><strong id="review-current"></strong><span id="review-status" class="review-badge" role="status"></span></div>
     <p id="review-notice" role="status" aria-live="polite" class="muted"></p>
     <article id="review-doc" class="md" tabindex="0" aria-label="Rendered draft"></article>
     <form id="review-form"><fieldset><legend>Checks only a person can make</legend><div id="review-checks"></div></fieldset>
