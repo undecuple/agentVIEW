@@ -1,18 +1,25 @@
 # agent-app spec
 
-A local, read-only viewer for notes, gate status, diffs and images, built as a small desktop app. MIT licence.
+A local desktop workspace with a read-only viewer for notes, gate status, diffs and images. MIT licence. Product name: agentVIEW; internal packages and configuration retain the `agent-app` name.
+
+## Foundation workspace (2026-11-21)
+The default window presents two simulated provider intake agents (Claude and Codex), project coordinators reporting to their intake, and worker/refuter subagents reporting to a coordinator. Hierarchy view shows that chain; project view groups coordinators from both providers. Provider, project and availability filters retain parent context.
+
+The workspace stores its own demo roster, availability and conversations in a private local SQLite database. Messages are persisted before synthetic delivery; busy/paused recipients remain queued. Delivery and one simulated reply commit atomically, with idempotent send requests and bounded history pages (100 rows per query, at most 1000 recent rows displayed). Restart preserves history and availability. No real Claude Code/Codex process is launched or attached to, and Zellij sessions are untouched.
+
+Workspace commands are allowed only in the workspace window at its exact origin. They cannot choose arbitrary paths, senders, processes or hierarchy assignments. The separate document window has no workspace capabilities. Token usage is grouped by agent/provider but marked unavailable until real adapters supply telemetry; no tokenizer estimate substitutes for measurement. Live multi-session wrappers, jobs and instruction editing remain later milestones.
 
 ## Rules the app keeps
 - It never grants an approval. An approvals view shows what a person must decide and where they decide it.
 - Credentials: the app shows names and where a secret lives, never the value, in the UI, logs or repo. In the viewer this is enforced by deny rules on file names plus a best-effort redaction of obvious token shapes in displayed text. Redaction is not a guarantee, so secrets must not sit in allow-listed files.
-- Read-only path allow-list. Paths are resolved with realpath (symlinks followed) before the deny rules, then checked against a list of files, not whole trees. Keys, credentials and build folders are denied. A diff view never renders a denied file.
+- Read-only path allow-list. Paths are resolved with realpath (symlinks followed) before the deny rules, then checked against explicitly configured files or directories. An allowed directory includes its descendants subject to deny rules. Keys, credentials and build folders are denied. Hardlinks are refused by both viewers. A diff view never renders a denied file.
 - It does not run Claude Code or Codex. A later version could do so only as the user's own sessions with existing permission modes.
 - No server beyond localhost. Files or SQLite, no database server until a need is shown.
 - Synthetic data only in tests and screenshots.
 
 ## First milestone: read-only viewer
 Views: shared docs, gate status (from a gate log file), recent file changes with diffs, images.
-Data sources: files under an explicit allow-list in a config file. No writes anywhere except its own cache.
+Data sources: files under an explicit allow-list in a config file. Document browsing never writes these files. The separate workspace writes only its own local application database.
 Done when: it starts, lists the allow-listed docs, shows a diff of a synthetic file, and a test proves an excluded path is refused.
 
 ## Later, not started

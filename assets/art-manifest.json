@@ -1,0 +1,52 @@
+{
+  "generator": "scripts/make-readme-assets.py",
+  "fonts": [],
+  "palette": [
+    "#16181a",
+    "#1e2124",
+    "#3c4048",
+    "#5ea1ff",
+    "#5ef1ff",
+    "#ffffff",
+    "#9ba4b5"
+  ],
+  "palettes": {
+    "dark": [
+      "#16181a",
+      "#1e2124",
+      "#3c4048",
+      "#5ea1ff",
+      "#5ef1ff",
+      "#ffffff",
+      "#9ba4b5"
+    ],
+    "light": [
+      "#ffffff",
+      "#eaeaea",
+      "#acacac",
+      "#0057d1",
+      "#008c99",
+      "#16181a",
+      "#596274"
+    ]
+  },
+  "palette_source": {
+    "repository": "https://github.com/scottmckendry/cyberdream.nvim",
+    "revision": "eafadf5712e447bb813f8f7eab8012d1391fdba2",
+    "path": "lua/cyberdream/colors.lua",
+    "adaptation": "Cyberdream base/accent colors; app-specific readable muted text."
+  },
+  "social_preview": {
+    "width": 1280,
+    "height": 640
+  },
+  "inspiration": {
+    "repository": "https://github.com/undecuple/me",
+    "revision": "ce194c20037b15ab9fa03e38f1f2d36c476417b1",
+    "assets": [
+      "assets/banner.svg",
+      "assets/divider.svg"
+    ],
+    "reuse": "Double-rule, checker-dither and frame approach; new generator and lettering."
+  }
+}

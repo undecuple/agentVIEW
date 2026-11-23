@@ -1,0 +1,90 @@
+name: Release
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      revision: ${{ steps.metadata.outputs.revision }}
+      draft_allowed: ${{ steps.metadata.outputs.draft_allowed }}
+    env:
+      CARGO_HOME: ${{ github.workspace }}/.cargo-home
+      AGENT_APP_DIST_DIR: dist-appimage/release
+      AGENT_APP_CONTAINER_USERNS: host
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned Nix
+        run: bash scripts/install-ci-nix.sh
+      - name: Validate release identity
+        id: metadata
+        run: nix develop --no-write-lock-file --command python3 scripts/release.py metadata
+      - name: Restore public crate and portable build caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            .cargo-home/registry
+            target
+            target-jammy
+          key: ${{ runner.os }}-agentview-portable-${{ hashFiles('flake.lock', 'Cargo.lock', 'packaging/Containerfile') }}
+      - name: Provision container engine on the ephemeral runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends podman uidmap
+          podman --version
+      - name: Fetch locked Linux crates
+        run: nix develop --no-write-lock-file --command cargo fetch --locked --target x86_64-unknown-linux-gnu
+      - name: Test source and generated assets
+        run: |
+          nix develop --no-write-lock-file --command bash scripts/check-foundation.sh "$RUNNER_TEMP/foundation"
+          nix develop --no-write-lock-file --command python3 scripts/make-readme-assets.py --check
+      - name: Build committed source archive and portable AppImage
+        run: |
+          nix develop --no-write-lock-file --command bash scripts/package-source.sh
+          nix develop --no-write-lock-file --command bash scripts/build-appimage.sh
+      - name: Smoke-test the release artifact
+        run: |
+          revision=$(git rev-parse --short=12 HEAD)
+          version=$(nix develop --no-write-lock-file --command python3 scripts/release.py version)
+          nix develop --no-write-lock-file --command bash scripts/test-appimage.sh "$AGENT_APP_DIST_DIR/agentVIEW-$version-$revision-x86_64.AppImage" "$RUNNER_TEMP/appimage-smoke"
+      - name: Prepare checksums and provenance
+        run: nix develop --no-write-lock-file --command python3 scripts/release.py prepare
+      - name: Retain tested release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: agentVIEW-${{ steps.metadata.outputs.revision }}-linux-x86_64
+          path: dist-appimage/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+  draft:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.draft_allowed == 'true'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: agentVIEW-${{ needs.build.outputs.revision }}-linux-x86_64
+          path: dist-appimage/release
+      - name: Verify downloaded files and create draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release.py draft

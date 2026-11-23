@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-workspace-tick"
+description = "Enables the workspace_tick command without any pre-configured scope."
+commands.allow = ["workspace_tick"]
+
+[[permission]]
+identifier = "deny-workspace-tick"
+description = "Denies the workspace_tick command without any pre-configured scope."
+commands.deny = ["workspace_tick"]

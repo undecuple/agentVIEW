@@ -7,11 +7,14 @@
 # Unsigned: a detached signature is made only with a key the maintainer provides.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version=0.1.0
+[ -z "$(git status --porcelain)" ] || { echo "Commit the candidate first; refusing to label a dirty build with HEAD" >&2; exit 2; }
+version=$(python3 scripts/release.py version)
+revision=$(git rev-parse --short=12 HEAD)
 epoch=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}
 runtime_url=https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
 runtime_sha=2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
-out=dist-appimage; rm -rf "$out"; mkdir -p "$out" target-jammy
+out=${AGENT_APP_DIST_DIR:-dist-appimage}; mkdir -p "$out" target-jammy
+userns=${AGENT_APP_CONTAINER_USERNS:-keep-id}
 
 # 1. container build (toolchain from /nix, mounted read-only; crates from the locked, offline .cargo-home)
 # Rebuild the build image whenever the Containerfile changes (the image carries its hash as a label).
@@ -19,7 +22,7 @@ cf=$(sha256sum packaging/Containerfile | cut -d' ' -f1)
 have=$(podman image inspect agent-app-build:jammy --format '{{index .Config.Labels "cf-sha"}}' 2>/dev/null || true)
 [ "$have" = "$cf" ] || podman build --label "cf-sha=$cf" -t agent-app-build:jammy -f packaging/Containerfile packaging
 tc=$(nix develop --command bash -c 'echo $(dirname $(command -v cargo)):$(dirname $(command -v rustc))' 2>/dev/null | tail -1)
-podman run --rm --network=none --userns=keep-id -v /nix:/nix:ro -v "$PWD":/work:ro -v "$PWD/target-jammy":/out -v "$PWD/.cargo-home":/cargo \
+podman run --rm --network=none --userns="$userns" -v /nix:/nix:ro -v "$PWD":/work:ro -v "$PWD/target-jammy":/out -v "$PWD/.cargo-home":/cargo \
   -e CARGO_HOME=/cargo -e CARGO_TARGET_DIR=/out -e SOURCE_DATE_EPOCH="$epoch" \
   -e PATH="$tc:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" -w /work agent-app-build:jammy \
   cargo build --release --locked --offline -p agent-app
@@ -28,9 +31,12 @@ bin=target-jammy/release/agent-app
 # 2. binary checks: no nix paths, no test-only strings, no missing libs in the container, glibc floor
 scripts/check-release-binary.sh "$bin"
 ! grep -aqF /nix/store "$bin" || { echo "binary mentions /nix/store"; exit 1; }
-podman run --rm --network=none -v "$PWD/target-jammy":/out:ro agent-app-build:jammy sh -c \
+glibc=$(podman run --rm --network=none -v "$PWD/target-jammy":/out:ro agent-app-build:jammy sh -c \
   'test "$(ldd /out/release/agent-app | grep -c "not found")" = 0 && objdump -T /out/release/agent-app | grep -o "GLIBC_[0-9.]*" | sort -Vu | tail -1' \
-  | sed 's/^/highest glibc symbol needed: /'
+)
+[[ "$glibc" =~ ^GLIBC_[0-9]+(\.[0-9]+)+$ ]] || { echo "Could not determine glibc floor" >&2; exit 1; }
+echo "highest glibc symbol needed: $glibc"
+[ "$(printf '%s\n' 2.34 "${glibc#GLIBC_}" | sort -V | tail -1)" = 2.34 ] || { echo "glibc requirement exceeds declared 2.34 floor" >&2; exit 1; }
 
 # 3. AppDir, squashfs, runtime
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
@@ -40,10 +46,14 @@ install -m 755 packaging/AppRun "$appdir/AppRun"
 install -m 644 packaging/agent-app.desktop "$appdir/agent-app.desktop"
 install -m 644 src-tauri/icons/icon.png "$appdir/agent-app.png"
 ln -s agent-app.png "$appdir/.DirIcon"
+mkdir -p "$appdir/usr/share/licenses/agentVIEW"
+cp -R licenses/. "$appdir/usr/share/licenses/agentVIEW/"
+install -m 644 LICENSE NOTICE.md assets/cyberdream-LICENSE.txt "$appdir/usr/share/licenses/agentVIEW/"
+printf 'agentVIEW\nsource commit: %s\nunsigned local build\n' "$(git rev-parse HEAD)" > "$appdir/usr/share/agentVIEW-build.txt"
 mkdir "$d/rt"; curl -fsSL --proto '=https' -o "$d/rt/runtime" "$runtime_url"
 echo "$runtime_sha  $d/rt/runtime" | sha256sum -c - >/dev/null || { echo "runtime hash mismatch, refusing"; exit 1; }
 env -u SOURCE_DATE_EPOCH mksquashfs "$appdir" "$d/app.squashfs" -root-owned -noappend -comp gzip -mkfs-time "$epoch" -all-time "$epoch" -quiet
-img="$out/agent-app-$version-x86_64.AppImage"
+img="$out/agentVIEW-$version-$revision-x86_64.AppImage"
 cat "$d/rt/runtime" "$d/app.squashfs" > "$img"; chmod 755 "$img"
 
 # 4. checksum (integrity only; not a signature)

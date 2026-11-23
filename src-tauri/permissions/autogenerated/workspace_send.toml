@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-workspace-send"
+description = "Enables the workspace_send command without any pre-configured scope."
+commands.allow = ["workspace_send"]
+
+[[permission]]
+identifier = "deny-workspace-send"
+description = "Denies the workspace_send command without any pre-configured scope."
+commands.deny = ["workspace_send"]

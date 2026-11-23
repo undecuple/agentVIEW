@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-review-clear"
+description = "Enables the review_clear command without any pre-configured scope."
+commands.allow = ["review_clear"]
+
+[[permission]]
+identifier = "deny-review-clear"
+description = "Denies the review_clear command without any pre-configured scope."
+commands.deny = ["review_clear"]

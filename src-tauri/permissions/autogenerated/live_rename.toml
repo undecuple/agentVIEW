@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-rename"
+description = "Enables the live_rename command without any pre-configured scope."
+commands.allow = ["live_rename"]
+
+[[permission]]
+identifier = "deny-live-rename"
+description = "Denies the live_rename command without any pre-configured scope."
+commands.deny = ["live_rename"]

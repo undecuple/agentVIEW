@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-create"
+description = "Enables the live_create command without any pre-configured scope."
+commands.allow = ["live_create"]
+
+[[permission]]
+identifier = "deny-live-create"
+description = "Denies the live_create command without any pre-configured scope."
+commands.deny = ["live_create"]

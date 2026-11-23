@@ -1,0 +1,25 @@
+#!/bin/sh
+# agentVIEW standalone start. The AppImage carries its own copy of the libraries (WebKitGTK, GTK, glib, glibc)
+# under nix/store. Inside a private user namespace (bubblewrap) they are laid over /nix/store, so nothing on the
+# host changes and the host root, your home and your CLIs stay visible.
+# AGENTVIEW_ISOLATE_STORE=1 hides the host store completely (used by the test to prove the bundle is complete).
+set -eu
+here="$(dirname "$(readlink -f "$0")")"
+. "$here/usr/share/agentVIEW-paths.env"
+store="$here/nix/store"
+libs=""; for l in $BWRAP_LIBS; do libs="$libs:$store/$l"; done
+if [ "${AGENTVIEW_ISOLATE_STORE:-}" = 1 ] || [ ! -d /nix/store ]; then
+  mode="--tmpfs /nix --ro-bind $store /nix/store"
+else
+  mode="--overlay-src /nix/store --overlay-src $store --ro-overlay /nix/store"
+fi
+export XDG_DATA_DIRS="/nix/store/$EXTRAS/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export GDK_PIXBUF_MODULE_FILE="/nix/store/$EXTRAS/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+if [ -f /etc/fonts/fonts.conf ] && [ "${AGENTVIEW_ISOLATE_STORE:-}" != 1 ]; then export FONTCONFIG_FILE=/etc/fonts/fonts.conf; else export FONTCONFIG_FILE="/nix/store/$FONTS"; fi
+# If the window stays black on your GPU, start with AGENTVIEW_SOFTWARE_RENDER=1 (software rendering).
+if [ "${AGENTVIEW_SOFTWARE_RENDER:-}" = 1 ]; then export WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1; fi
+export LD_LIBRARY_PATH=""
+# shellcheck disable=SC2086
+exec "$store/$INTERP" --library-path "${libs#:}" "$store/$BWRAP" --dev-bind / / $mode \
+  --ro-bind "$here/usr/bin/agent-app" /tmp/.agentview-bin --die-with-parent \
+  "/nix/store/$INTERP" /tmp/.agentview-bin "$@"

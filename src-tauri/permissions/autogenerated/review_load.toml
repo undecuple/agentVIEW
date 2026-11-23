@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-review-load"
+description = "Enables the review_load command without any pre-configured scope."
+commands.allow = ["review_load"]
+
+[[permission]]
+identifier = "deny-review-load"
+description = "Denies the review_load command without any pre-configured scope."
+commands.deny = ["review_load"]

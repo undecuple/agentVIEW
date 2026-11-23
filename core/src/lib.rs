@@ -3,6 +3,7 @@
 pub mod gate;
 pub mod html;
 pub mod images;
+pub mod markdown;
 pub mod policy;
 pub mod router;
 pub mod sys;

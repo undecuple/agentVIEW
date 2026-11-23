@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "src-tauri"]
+members = ["core", "src-tauri", "workspace", "sessions"]
 
 [profile.release]
 lto = true

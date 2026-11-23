@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "agent-app",
+  "productName": "agentVIEW",
   "version": "0.1.0",
   "identifier": "local.agentapp.viewer",
   "build": { "frontendDist": "../dist" },
@@ -12,5 +12,5 @@
       "assetProtocol": { "enable": false }
     }
   },
-  "bundle": { "active": false }
+  "bundle": { "active": false, "icon": ["icons/icon.png"] }
 }

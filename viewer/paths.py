@@ -112,6 +112,8 @@ def read_checked(path, cfg, cap):
         st = os.fstat(fh.fileno())
         if not stat.S_ISREG(st.st_mode) or (st.st_dev, st.st_ino) != (st0.st_dev, st0.st_ino):
             raise Refused("file changed during check")
+        if st.st_nlink > 1:
+            raise Refused("hard-linked file refused")
         data = fh.read(cap + 1)
     return real, data[:cap].decode("utf-8", "replace"), len(data) > cap
 
@@ -128,6 +130,8 @@ def read_bytes_checked(path, cfg, cap):
         st = os.fstat(fh.fileno())
         if not stat.S_ISREG(st.st_mode) or (st.st_dev, st.st_ino) != (st0.st_dev, st0.st_ino):
             raise Refused("file changed during check")
+        if st.st_nlink > 1:
+            raise Refused("hard-linked file refused")
         data = fh.read(cap + 1)
     if len(data) > cap:
         raise Refused("file too large")

@@ -1,0 +1,31 @@
+{
+  "identifier": "workspace",
+  "description": "Trusted workspace commands for demo records and explicitly launched local Claude/Codex terminals and local numeric usage records.",
+  "windows": [
+    "workspace"
+  ],
+  "local": true,
+  "permissions": [
+    "allow-workspace-snapshot",
+    "allow-workspace-send",
+    "allow-workspace-control",
+    "allow-workspace-tick",
+    "allow-workspace-open-docs",
+    "allow-live-probe",
+    "allow-live-snapshot",
+    "allow-live-create", "allow-live-set-remote", "allow-live-rename", "allow-review-files", "allow-review-load", "allow-review-mark", "allow-review-clear",
+    "allow-live-start",
+    "allow-live-read",
+    "allow-live-write",
+    "allow-live-resize",
+    "allow-live-stop",
+    "allow-usage-snapshot",
+    "allow-usage-refresh",
+    "allow-app-settings-snapshot",
+    "allow-app-settings-save",
+    "allow-app-settings-reset",
+    "allow-app-settings-apply",
+    "allow-app-about",
+    "allow-app-diagnostics-export"
+  ]
+}

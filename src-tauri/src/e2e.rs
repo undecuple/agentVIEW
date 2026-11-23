@@ -28,6 +28,8 @@ const rep = (k, v) => { new Image().src = '/__report?' + encodeURIComponent(k) +
 </script>"#;
 
 pub fn intercept(target: &str, sfs: Option<&str>) -> Option<Response<Vec<u8>>> {
+    #[cfg(feature="workspace-e2e")]
+    if let Some(r) = crate::workspace_e2e::viewer_intercept(target) { return Some(r); }
     if target.starts_with("/img?") {
         eprintln!("E2E sec-fetch-site={:?}", sfs);
     }

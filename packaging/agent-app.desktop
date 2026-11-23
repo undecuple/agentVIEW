@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=agent-app
-Comment=Read-only viewer for shared docs, gate status and diffs
+Name=agentVIEW
+Comment=Local agent workspace and read-only document viewer
 Exec=agent-app
 Icon=agent-app
 Categories=Development;Utility;

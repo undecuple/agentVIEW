@@ -4,7 +4,7 @@ here="$(dirname "$(readlink -f "$0")")"
 bin="$here/usr/bin/agent-app"
 missing="$(ldd "$bin" 2>/dev/null | grep 'not found' | awk '{print $1}' | tr '\n' ' ')"
 if [ -n "$missing" ]; then
-  echo "agent-app needs these libraries from your system, which are missing: $missing" >&2
+  echo "agentVIEW needs these libraries from your system, which are missing: $missing" >&2
   echo "Install WebKitGTK 4.1 and GTK 3 (Debian/Ubuntu: libwebkit2gtk-4.1-0 libgtk-3-0; Fedora: webkit2gtk4.1 gtk3; Arch: webkit2gtk-4.1 gtk3)." >&2
   exit 1
 fi

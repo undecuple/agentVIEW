@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-review-files"
+description = "Enables the review_files command without any pre-configured scope."
+commands.allow = ["review_files"]
+
+[[permission]]
+identifier = "deny-review-files"
+description = "Denies the review_files command without any pre-configured scope."
+commands.deny = ["review_files"]

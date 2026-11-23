@@ -280,3 +280,20 @@ Generated from Cargo.lock with cargo metadata. Licence texts are in rust-crates-
 | zerovec-derive | 0.11.7 | Unicode-3.0 |
 | zlib-rs | 0.6.8 | Zlib |
 | zmij | 1.0.23 | MIT |
+
+## Workspace dependency additions
+
+Texts are in `workspace-crates.txt`; the existing crate inventory above is historical.
+
+| Crate | Version | SPDX |
+|---|---|---|
+| ahash | 0.8.12 | MIT OR Apache-2.0 |
+| fallible-iterator | 0.3.0 | MIT/Apache-2.0 |
+| fallible-streaming-iterator | 0.1.9 | MIT/Apache-2.0 |
+| hashbrown | 0.14.5 | MIT OR Apache-2.0 |
+| hashlink | 0.9.1 | MIT OR Apache-2.0 |
+| libsqlite3-sys | 0.30.1 | MIT |
+| rusqlite | 0.32.1 | MIT |
+| vcpkg | 0.2.15 | MIT/Apache-2.0 |
+| zerocopy | 0.8.64 | BSD-2-Clause OR Apache-2.0 OR MIT |
+| zerocopy-derive | 0.8.64 | BSD-2-Clause OR Apache-2.0 OR MIT |

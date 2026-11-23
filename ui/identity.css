@@ -1,0 +1,20 @@
+/* agentVIEW identity: terminal-console character instead of generic rounded cards.
+   Monospace display type, double rules, square corners, a block cursor mark and a bar on the active item. */
+:root{--mono:ui-monospace,"JetBrains Mono","DejaVu Sans Mono",Menlo,Consolas,monospace}
+h1,h2,legend,.summary strong,.panel-title h2{font-family:var(--mono);font-weight:600;letter-spacing:-.3px}
+h1::before{content:"▌";color:var(--accent,#5ea1ff);margin-right:.4ch;font-weight:400}
+.topbar,.page-heading{border-bottom:3px double var(--line)}
+.summary,.settings-panel,.usage-panel,fieldset,.live-session,.deck,.local-pill,.demo-pill,button,input,select,textarea,.nav-count,.summary-icon,.workspace-label{border-radius:2px}
+.nav-item{border-radius:0;border-left:3px solid transparent}
+.nav-item.active{border-left-color:var(--accent,#5ea1ff)}
+.eyebrow,.nav-label,.demo-pill{font-family:var(--mono)}
+.demo-pill::before{content:"■ ";font-size:8px;vertical-align:1px}
+.summary>div+div{border-left:1px dashed var(--line)}
+#live label:has(>select){display:inline-flex;align-items:center;gap:10px}
+.live-extra{margin:10px 0}.inline-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.inline-form label{display:flex;align-items:center;gap:8px}.remote-box{border:1px dashed var(--line);padding:10px 12px;margin-top:10px}.live-extra[hidden],.remote-box[hidden]{display:none}
+.review-panel .md{border:1px solid var(--line);padding:16px 20px;margin:12px 0;max-height:46vh;overflow:auto;line-height:1.55;background:var(--bg)}
+.md h2,.md h3,.md h4,.md h5,.md h6{font-family:var(--mono);margin:1em 0 .4em}.md table{border-collapse:collapse;margin:8px 0}.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left}
+.md pre{overflow:auto;padding:10px;background:var(--surface-2)}.md code{font-family:var(--mono);font-size:12px}.md blockquote{margin:8px 0;padding-left:12px;border-left:3px solid var(--line);color:var(--muted)}.md .md-url{color:var(--muted)}
+.review-badge{font-family:var(--mono);font-size:12px;padding:3px 8px;border:1px solid var(--line)}.review-badge[data-state=pass]{color:var(--green);border-color:var(--green)}.review-badge[data-state=stale]{color:var(--yellow);border-color:var(--yellow)}
+#review-checks{display:grid;gap:8px}
+.md h2{font-size:20px}.md h3{font-size:17px}.md h4,.md h5,.md h6{font-size:14px}.review-panel .inline-form>label{flex-direction:column;align-items:flex-start;gap:4px}#review-checks .check-label{padding:2px 0}

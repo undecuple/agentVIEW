@@ -153,6 +153,34 @@ class GateEdgeTests(unittest.TestCase):
 
 
 class ReadTests(Base):
+    def test_hardlink_to_denied_text_refused(self):
+        source = os.path.join(self.d, "docs/work/secret.md")
+        alias = os.path.join(self.d, "docs/innocent.md")
+        os.link(source, alias)
+        self.assertGreater(os.stat(alias).st_nlink, 1)
+        with self.assertRaises(paths.Refused):
+            paths.read_checked(source, self.cfg, 1000)
+        with self.assertRaises(paths.Refused):
+            paths.read_checked(alias, self.cfg, 1000)
+
+    def test_hardlink_to_denied_bytes_refused(self):
+        source = os.path.join(self.d, "docs/work/secret.md")
+        alias = os.path.join(self.d, "docs/innocent.md")
+        os.link(source, alias)
+        self.assertGreater(os.stat(alias).st_nlink, 1)
+        with self.assertRaises(paths.Refused):
+            paths.read_bytes_checked(source, self.cfg, 1000)
+        with self.assertRaises(paths.Refused):
+            paths.read_bytes_checked(alias, self.cfg, 1000)
+
+    def test_single_link_readers_still_work(self):
+        normal = os.path.join(self.d, "docs/a.md")
+        self.assertEqual(os.stat(normal).st_nlink, 1)
+        self.assertEqual(paths.read_checked(normal, self.cfg, 1000),
+                         (os.path.realpath(normal), "line1\nline2\n", False))
+        self.assertEqual(paths.read_bytes_checked(normal, self.cfg, 1000),
+                         (os.path.realpath(normal), b"line1\nline2\n"))
+
     def test_symlink_swap_refused(self):
         real = os.path.join(self.d, "docs", "a.md")
         orig = paths.check
