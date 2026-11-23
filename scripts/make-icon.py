@@ -33,7 +33,7 @@ def polygon(x, y, points):
 
 
 def pixel(x, y, light=False):
-    colors = [(234,234,234,255),(255,255,255,255),(0,87,209,255),(0,140,153,255)] if light else [(12,10,18,255),(20,18,27,255),(143,116,255,255),(196,181,253,255)]
+    colors = [(234,234,234,255),(255,255,255,255),(0,87,209,255),(0,140,153,255)] if light else [(27,29,30,255),(39,40,34,255),(240,140,176,255),(102,217,239,255)]
     color = (0, 0, 0, 0)
     if rounded(x, y, 8, 248, 52):
         color = colors[0]
@@ -77,7 +77,7 @@ def main():
     check = parser.parse_args().check
     def svg(light=False):
         text=SVG
-        colors=['#eaeaea','#ffffff','#0057d1','#008c99'] if light else ['#0c0a12','#14121b','#8f74ff','#c4b5fd']
+        colors=['#eaeaea','#ffffff','#0057d1','#008c99'] if light else ['#1b1d1e','#272822','#f08cb0','#66d9ef']
         for old,new in zip(['#19171d','#242029','#ef8caf','#94dbba'],colors):text=text.replace(old,new)
         return text.encode()
     for relative, content in [('ui/agentview.svg', svg()), ('ui/agentview-light.svg', svg(True)), ('src-tauri/icons/icon.png', png()), ('assets/icon-light.png', png(True))]:

@@ -43,6 +43,10 @@
       document.scrollingElement.scrollTop=0;await capture('settings-light');
       input('pref-theme','dark');await save();document.scrollingElement.scrollTop=0;await capture('settings-dark');
       input('pref-theme','system');await save();assert(document.documentElement.dataset.theme===(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'),'System theme follows the OS preference');
+      input('pref-theme','papercolor-light');await save();
+      assert(document.documentElement.dataset.theme==='papercolor-light'&&getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()==='#eeeeee'&&document.querySelector('.brand-symbol').src.endsWith('/agentview-light.svg'),'PaperColor Light applies with the light mark');
+      input('pref-theme','papercolor-dark');await save();
+      assert(document.documentElement.dataset.theme==='papercolor-dark'&&getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()==='#1c1c1c','PaperColor Dark applies');
       input('pref-theme','light');await save();
     }else if(TEST_PHASE==='restart'){
       await until(()=>!$('usage').hidden&&$('usage-notice').textContent.includes('Showing saved'),'saved default Usage page loads on fast startup');

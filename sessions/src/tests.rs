@@ -23,6 +23,8 @@ while True:
   if line==b'size':
    rows,cols,_,_=struct.unpack('HHHH',fcntl.ioctl(t,termios.TIOCGWINSZ,b'\0'*8))
    print('SIZE:'+str(cols)+':'+str(rows),flush=True)
+  elif line==b'exit3':
+   sys.exit(3)
   elif line==b'flood':
    sys.stdout.write('x'*600000+'\nFLOOD_DONE\n');sys.stdout.flush()
   elif line==b'spawn':
@@ -349,4 +351,28 @@ fn latest_tool_reads_only_a_safe_name() {
     let bad = "{\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"rm -rf /; echo\"}]}}\n";
     assert_eq!(crate::activity::latest_tool(bad), None);
     assert_eq!(crate::activity::latest_tool("{\"message\":{\"content\":\"plain\"}}\n"), None);
+}
+
+#[test]
+fn exit_status_is_kept_until_the_next_start_and_stop_all_stops_everything() {
+    let fixture = Fixture::new();let mut manager = fixture.manager();
+    let a = manager.create("Exit test",&fixture.a).unwrap();
+    let live = manager.start(&a.id).unwrap();
+    ready(&mut manager,&live);
+    manager.write(&live.id,&live.generation,b"exit3\n").unwrap();
+    let until = Instant::now() + Duration::from_secs(5);
+    let info = loop {
+        let info = manager.list().unwrap().into_iter().find(|s| s.id==a.id).unwrap();
+        if info.status=="exited" { break info; }
+        assert!(Instant::now() < until, "session did not exit");
+        thread::sleep(Duration::from_millis(20));
+    };
+    assert_eq!(info.exit_info.as_deref(), Some("exit 3"));
+    assert!(info.exit_at.is_some());
+    assert_eq!(manager.stop_all().unwrap(), 0);
+    let again = manager.start(&a.id).unwrap();
+    assert!(again.exit_info.is_none(), "a new start clears the last exit");
+    ready(&mut manager,&again);
+    assert_eq!(manager.stop_all().unwrap(), 1);
+    assert_eq!(manager.get(&a.id).unwrap().status, "stopped");
 }

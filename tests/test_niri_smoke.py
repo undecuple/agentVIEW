@@ -74,7 +74,7 @@ class RenderControls(unittest.TestCase):
             SMOKE.check_render(blank)
 
     def test_invisible_blue_pixels_do_not_count_as_rendered_content(self):
-        invisible = self.fixture("invisible-blue.png", lambda x, y: (149, 98, 245, 0), rgba=True)
+        invisible = self.fixture("invisible-blue.png", lambda x, y: (102, 217, 239, 0), rgba=True)
         with self.assertRaises(RuntimeError):
             SMOKE.check_render(invisible)
 
@@ -82,9 +82,9 @@ class RenderControls(unittest.TestCase):
         def workspace(x, y):
             # A Cyberdream blue panel header and border against the dark workspace surface.
             if 24 <= x < 168 and (24 <= y < 32 or 96 <= y < 100):
-                return (149, 98, 245)
+                return (102, 217, 239)
             if 24 <= y < 100 and (24 <= x < 28 or 164 <= x < 168):
-                return (149, 98, 245)
+                return (102, 217, 239)
             return (30, 33, 36)
 
         frame = self.fixture("workspace-frame.png", workspace)
@@ -103,11 +103,11 @@ class RenderControls(unittest.TestCase):
         with self.assertRaises(RuntimeError):SMOKE.check_render(frame)
 
     def test_neutral_compositor_focus_ring_does_not_pass_a_blank_webview(self):
-        frame=self.fixture("focus-ring.png",lambda x,y:(123,132,150) if x<4 or x>=188 or y<4 or y>=124 else (19,24,31))
+        frame=self.fixture("focus-ring.png",lambda x,y:(123,132,150) if x<4 or x>=188 or y<4 or y>=124 else (27,29,30))
         with self.assertRaises(RuntimeError):SMOKE.check_render(frame)
 
     def test_solid_accent_blank_window_is_rejected(self):
-        blank=self.fixture("blue-blank.png",lambda x,y:(149,98,245))
+        blank=self.fixture("blue-blank.png",lambda x,y:(102,217,239))
         with self.assertRaises(RuntimeError):SMOKE.check_render(blank)
 
     def test_malformed_image_is_rejected_by_decoder(self):

@@ -25,7 +25,7 @@
     const s=snapshot?.settings;if(!s)return;
     const theme=s.theme==='system'?(media.matches?'light':'dark'):s.theme;
     document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=s.density;
-    document.querySelector('.brand-symbol').src=theme==='light'?'/agentview-light.svg':'/agentview.svg';
+    document.querySelector('.brand-symbol').src=(theme==='light'||theme==='papercolor-light')?'/agentview-light.svg':'/agentview.svg';
     window.dispatchEvent(new CustomEvent('agentview:theme',{detail:theme}));
     if(appliedScale!==s.ui_scale_percent)applyScale();
   }
@@ -48,19 +48,19 @@
     ready:null,
   };
   window.AppNav={navigate(page){
-    if(!['agents','sessions','overview','review','usage','settings'].includes(page))return;
+    if(!['agents','sessions','overview','notes','cc','review','usage','settings'].includes(page))return;
     if(page==='agents'&&document.body.dataset.demo!=='true')page='sessions';
-    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
+    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['notes','notes'],['cc','cc'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
     for(const selector of ['.page-heading','.summary','.demo-note'])document.querySelector(selector).hidden=page!=='agents';
-    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
-    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
-    for(const [id,key] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-review','review'],['show-usage','usage'],['show-settings','settings']]){
+    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',notes:'Notes',cc:'Claude config',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
+    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',notes:'APP-OWNED NOTES',cc:'READ-ONLY',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
+    for(const [id,key] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-notes','notes'],['show-cc','cc'],['show-review','review'],['show-usage','usage'],['show-settings','settings']]){
       const button=document.getElementById(id);button.classList.toggle('active',page===key);if(page===key)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     }
     document.body.dataset.page=page;document.scrollingElement.scrollTop=0;
     window.dispatchEvent(new CustomEvent('agentview:navigate',{detail:page}));
   }};
-  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents'],['close-settings','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
+  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-notes','notes'],['show-cc','cc'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents'],['close-settings','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
   media.addEventListener('change',appearance);
   AppPrefs.ready=Promise.all([loaded,dom]).then(([next])=>accept(next)).catch(()=>{banner('Preferences could not be loaded. Built-in defaults are in use.');return null;});
   // Register after other deferred scripts have attached their preference listeners.

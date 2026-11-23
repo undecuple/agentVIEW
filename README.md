@@ -9,9 +9,9 @@ Intake agents, project coordinators and subagents, with durable conversations an
 
 <p align="center">
   <a href="https://github.com/undecuple/agentVIEW/actions/workflows/ci.yml"><img src="https://github.com/undecuple/agentVIEW/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI on main"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-c4b5fd?labelColor=14121b" alt="Licence: MIT"></a>
-  <img src="https://img.shields.io/badge/platform-Linux-8f74ff?labelColor=14121b" alt="Platform: Linux">
-  <img src="https://img.shields.io/badge/status-foundation_preview-c4b5fd?labelColor=14121b" alt="Status: foundation preview">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-66d9ef?labelColor=232526" alt="Licence: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-Linux-f08cb0?labelColor=232526" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/status-foundation_preview-66d9ef?labelColor=232526" alt="Status: foundation preview">
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@ Intake agents, project coordinators and subagents, with durable conversations an
 agentVIEW is a Tauri 2 desktop app with a Rust core. It separates the agent workspace from a restricted document viewer.
 The preview includes **simulated hierarchy/chat records** and a separate **Sessions** desk for explicitly launched Claude Code and Codex terminals. Authenticated native-TUI conversation recovery is awaiting live verification; see [session status and limits](docs/SHARED-SESSIONS.md). The Cyberdream dark/light design has [hierarchy](docs/agentview-preview.png), [Sessions](docs/agentview-live-preview.png) and [usage](docs/agentview-usage-preview.png) previews. [Dark Settings](docs/agentview-settings-dark-preview.png) · [Light Settings](docs/agentview-settings-light-preview.png).
 
-The **Settings** page controls Cyberdream Dark/Light/System appearance, scale/density, startup defaults, terminal preferences, visible-page usage refresh and coordinator prompt presets. Preferences stay local; provider login/models/permissions remain native. See [settings and recovery](docs/SETTINGS.md).
+The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/Dark and System appearance, scale/density, startup defaults, terminal preferences, visible-page usage refresh and coordinator prompt presets. Preferences stay local; provider login/models/permissions remain native. See [settings and recovery](docs/SETTINGS.md).
 
 ## Quickstart
 

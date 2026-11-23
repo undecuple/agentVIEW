@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-bundle-list"
+description = "Enables the bundle_list command without any pre-configured scope."
+commands.allow = ["bundle_list"]
+
+[[permission]]
+identifier = "deny-bundle-list"
+description = "Denies the bundle_list command without any pre-configured scope."
+commands.deny = ["bundle_list"]

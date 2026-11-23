@@ -33,5 +33,5 @@ for phase in first restart; do
   grep -qx 'WORKSPACE_E2E result=pass' "$log"
   test -s "$run_dir/$phase.png"
 done
-grep -qx 'WORKSPACE_E2E docs-denied=28' "$run_dir/restart.log"
+grep -qx 'WORKSPACE_E2E docs-denied=40' "$run_dir/restart.log"
 echo "workspace GUI/restart checks: PASS ($run_dir)"

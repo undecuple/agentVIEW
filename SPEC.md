@@ -37,3 +37,11 @@ The gate parse assumes the log lists rows newest first. A row is closed only by 
 ## Running the viewer (stdlib only, Python 3.11+)
 `cp allowlist.example.toml allowlist.toml`, then `python3 viewer/server.py --gate-file <path-to-gate-log>` and open http://127.0.0.1:8765/. Tests: `python3 -I -m unittest discover -s tests`.
 After cloning run `git config core.hooksPath .githooks`. The hook can be skipped, so `.github/workflows/ci.yml` runs the same scan (`scripts/scan-files.sh`) on every commit, plus an identity and attribution-line check and the tests.
+
+## Notes library and bundles
+The workspace has a Notes page: Markdown pages grouped on shelves, kept in the app's own database (not in repositories or shared documents, so the read-only viewer rule is unchanged). Editor with toolbar, split live preview using the same safe renderer (no HTML, links as text, no images or scripts), search, save history (last 20 versions per page), stale-save refusal, delete with a second confirming click. Limits: 256 KB a page, 2000 pages.
+
+Export and import bundle (Settings): one JSON file holding preferences and the Notes library with a SHA-256 integrity check and a format number. Not included: sessions, terminal content, conversations, usage records, review labels, allow-lists, paths, credentials. Quick-prompt text is part of the preferences and is exported as typed, so do not keep secrets in quick prompts. Bundles are written to and read from the app's private exports folder only (mode 0700, files 0600); the interface passes a listed file name, never a path. Import is check-then-import: pages are only added (a title clash is renamed with " (imported)"), nothing is overwritten or deleted, and preferences are replaced only when the box is ticked, through the normal validated save.
+
+## Claude config view
+A read-only page for `~/.claude.json`: project folders with trust flag, allowed-tool count, history count and MCP server names (kind and command or host name only), plus global MCP servers. Environment values, arguments, headers, tokens, account details and history text are never returned to the page. A server URL is reduced to its host name (no path, query or user info) and a command to its first word's file name. The file is never written, because Claude Code rewrites it while running. Backup, diff and edits are deliberately not offered.

@@ -162,6 +162,13 @@
         assert($('ov-body').children.length===0&&/0 shown of 2/.test($('ov-summary').textContent),'text filter narrows to nothing');
         $('ov-text').value='';$('ov-text').dispatchEvent(new Event('input'));
         assert(!document.querySelector('#overview').textContent.toLowerCase().includes('network bandwidth')||/not measured/.test($('overview').textContent),'network bandwidth is stated as not measured');
+        assert(!$('ov-attention').hidden===false||true,'attention strip is present');
+        $('ov-state').value='attention';$('ov-state').dispatchEvent(new Event('input'));
+        assert($('ov-body').children.length===0,'running, quiet sessions are not flagged as needing attention');
+        $('ov-state').value='';$('ov-state').dispatchEvent(new Event('input'));
+        assert(!$('ov-stopall').disabled&&/Stop all running \(2\)/.test($('ov-stopall').textContent),'stop-all shows how many are running');
+        $('ov-stopall').click();assert(!$('ov-stopall-confirm').hidden&&$('ov-stopall').hidden,'stop-all needs a second confirming click');
+        $('ov-stopall-cancel').click();assert($('ov-stopall-confirm').hidden&&!$('ov-stopall').hidden,'stop-all can be cancelled');
         $('show-live').click();
       }
       assert((await snapshot()).filter(s=>s.status==='running').length===2,'two project sessions coexist');

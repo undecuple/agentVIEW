@@ -96,7 +96,7 @@ fn plain_text(value:&str)->bool{
 impl AppSettings {
     pub fn validate(&self)->Result<()>{
         let one_of=|s:&str,allowed:&[&str]|allowed.contains(&s);
-        if !one_of(&self.theme,&["dark","light","system"])||!(80..=150).contains(&self.ui_scale_percent)
+        if !one_of(&self.theme,&["dark","light","system","papercolor-light","papercolor-dark"])||!(80..=150).contains(&self.ui_scale_percent)
             ||!one_of(&self.density,&["comfortable","compact"])||!one_of(&self.default_page,&["agents","sessions","usage","settings"])
             ||!one_of(&self.preferred_provider,&["claude","codex"])||!one_of(&self.hierarchy_provider,&["","claude","codex"])
             ||!one_of(&self.hierarchy_project,&["","Agent App","Documentation"])||!one_of(&self.hierarchy_status,&["","idle","busy","paused"])

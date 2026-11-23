@@ -88,6 +88,8 @@ pub async fn live_rename(window:tauri::WebviewWindow,state:tauri::State<'_,LiveS
 #[tauri::command]
 pub async fn live_activity(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<agent_app_sessions::Activity>,String>{manager(window,&state,|m|m.activity(&usage_roots())).await}
 #[tauri::command]
+pub async fn live_stop_all(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<usize,String>{manager(window,&state,|m|m.stop_all()).await}
+#[tauri::command]
 pub async fn live_snapshot(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<SessionInfo>,String>{manager(window,&state,|m|m.list()).await}
 // Roots are native configuration paths, never arbitrary paths supplied by web content.
 // Resolving a root reads no credentials, session content or provider configuration.

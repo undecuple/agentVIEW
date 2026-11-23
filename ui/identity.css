@@ -3,7 +3,7 @@
 :root{--mono:ui-monospace,"JetBrains Mono","DejaVu Sans Mono",Menlo,Consolas,monospace}
 h1,h2,legend,.summary strong,.panel-title h2{font-family:var(--mono);font-weight:600;letter-spacing:-.3px}
 h1::before{content:"▌";color:var(--accent,#5ea1ff);margin-right:.4ch;font-weight:400}
-.topbar,.page-heading{border-bottom:3px double var(--line)}
+.topbar,.page-heading{border-bottom:1px solid var(--line)}
 .summary,.settings-panel,.usage-panel,fieldset,.live-session,.deck,.local-pill,.demo-pill,button,input,select,textarea,.nav-count,.summary-icon,.workspace-label{border-radius:2px}
 .nav-item{border-radius:0;border-left:3px solid transparent}
 .nav-item.active{border-left-color:var(--accent,#5ea1ff)}
@@ -19,10 +19,10 @@ h1::before{content:"▌";color:var(--accent,#5ea1ff);margin-right:.4ch;font-weig
 #review-checks{display:grid;gap:8px}
 .md h2{font-size:20px}.md h3{font-size:17px}.md h4,.md h5,.md h6{font-size:14px}.review-panel .inline-form>label{flex-direction:column;align-items:flex-start;gap:4px}#review-checks .check-label{padding:2px 0}
 /* MNGR-inspired palette (dark only): violet-tinted near-black, violet accent, dotted-grid canvas, outlined buttons */
-:root:not([data-theme=light]){--bg:#0c0a12;--surface:#14121b;--surface-2:#1c1925;--line:#2a2635;--line-strong:#3d3656;--text:#ebe9f2;--muted:#8d88a0;--accent:#8f74ff;--pink:#a78bfa;--purple:#a78bfa;--accent-soft:#241d3f}
-:root:not([data-theme=light]) body{background-image:radial-gradient(circle at 50% -10%,#1d1534 0,transparent 55%)}
-:root:not([data-theme=light]) #live-terminal,:root:not([data-theme=light]) .review-panel .md{background-image:radial-gradient(#2a2640 1px,transparent 1px);background-size:18px 18px}
-:root:not([data-theme=light]) button:not(:disabled):hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+:root[data-theme=dark]{--bg:#0c0a12;--surface:#14121b;--surface-2:#1c1925;--line:#2a2635;--line-strong:#3d3656;--text:#ebe9f2;--muted:#8d88a0;--accent:#8f74ff;--pink:#a78bfa;--purple:#a78bfa;--accent-soft:#241d3f}
+:root[data-theme=dark] body{background-image:radial-gradient(circle at 50% -10%,#1d1534 0,transparent 55%)}
+:root[data-theme=dark] #live-terminal,:root[data-theme=dark] .review-panel .md{background-image:radial-gradient(#2a2640 1px,transparent 1px);background-size:18px 18px}
+:root[data-theme=dark] button:not(:disabled):hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .settings-panel button,.live-panel button,.controls button{font-family:var(--mono);font-size:11px;letter-spacing:.2px}
 #settings-save{background:var(--accent)}
 .review-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}.review-queue{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:4px;max-height:200px;overflow:auto}.review-queue button{display:flex;width:100%;gap:12px;justify-content:space-between;text-align:left;border:1px solid var(--line);background:transparent;color:var(--text);padding:8px 10px}.review-queue .q-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.review-queue .q-status{font-family:var(--mono);font-size:11px;flex-shrink:0;color:var(--muted)}.review-queue button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}.review-queue button[data-status=pass] .q-status{color:var(--green)}.review-queue button[data-status=stale] .q-status{color:var(--yellow)}
@@ -38,20 +38,77 @@ body[data-rail=collapsed] .nav-item{justify-content:center;padding:12px 0}
 body[data-rail=collapsed] .rail-toggle{align-self:center}
 body[data-rail=collapsed] .rail-bottom{padding:20px 0 0;text-align:center;font-size:0}
 .overview-panel .ov-scroll{overflow:auto;border:1px solid var(--line);margin-top:8px}.overview-panel table{border-collapse:collapse;width:100%;font-size:12px}.overview-panel th,.overview-panel td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}.overview-panel th{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:500}.overview-panel .ov-name{font-weight:600}.overview-panel .ov-run{color:var(--green)}.overview-panel .ov-stop{color:var(--muted)}#ov-body td:nth-child(5){font-family:var(--mono);font-size:11px;white-space:nowrap}.overview-panel .inline-form label{flex-direction:column;align-items:flex-start;gap:4px}
-/* Kestra-app-inspired refinement (dark only): cool blue-slate surfaces sampled from the product UI, violet reserved for primary actions and the active state */
-:root:not([data-theme=light]){--bg:#13181f;--surface:#1a1e27;--surface-2:#262b37;--line:#2d3340;--line-strong:#434b5e;--text:#e9ebf1;--muted:#8d95a8;--accent:#9562f5;--pink:#b79bff;--purple:#b79bff;--magenta:#ff2d95;--accent-soft:#2b2450}
-:root:not([data-theme=light]) body{background-image:none}
-:root:not([data-theme=light]) .rail{background:#171b23}
-:root:not([data-theme=light]) h1::before{color:var(--magenta)}
+/* Molokai-inspired palette (dark only): pink words on charcoal, cyan accent, green primary actions */
+:root[data-theme=dark]{--bg:#1b1d1e;--surface:#232526;--surface-2:#2f3132;--line:#3b3f40;--line-strong:#465457;--text:#f08cb0;--muted:#8f9ca0;--accent:#66d9ef;--pink:#f08cb0;--purple:#ae81ff;--cyan:#66d9ef;--green:#a6e22e;--yellow:#e6db74;--orange:#fd971f;--red:#ff5f5f;--magenta:#f08cb0;--accent-soft:#1d3338}
+:root[data-theme=dark] body{background-image:none}
+:root[data-theme=dark] .rail{background:#191b1c}
+:root[data-theme=dark] h1::before{color:var(--magenta)}
 .summary,.settings-panel,.usage-panel,fieldset,.live-session,.deck,.workspace-label,.review-panel .md,.review-queue button,.remote-box,.ov-scroll,.overview-panel .ov-scroll{border-radius:8px}
 button,input,select,textarea,.nav-item{border-radius:6px}
 .local-pill,.demo-pill,.review-badge,.nav-count,.queue-badge{border-radius:999px}
 .nav-item{border-left:0;padding:9px 10px}
-.nav-item.active{background:#2e3341;color:#fff;box-shadow:none}
-.nav-item.active>span:first-child{color:var(--accent)}
+.nav-item.active{background:var(--surface-2);color:var(--text);box-shadow:none}
+.nav-item.active>span:first-child{color:var(--orange)}
 .nav-label{margin:22px 10px 8px}
-#settings-save,#review-save:not(:disabled),#live-start:not(:disabled),#live-create:not(:disabled),.live-panel button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-:root:not([data-theme=light]) button:not(:disabled):hover{border-color:var(--accent);box-shadow:none}
+#settings-save,#review-save:not(:disabled),#live-start:not(:disabled),#live-create:not(:disabled),.live-panel button.primary{background:var(--green);border-color:var(--green);color:var(--on-primary,#1b1d1e);font-weight:600}
+:root[data-theme=dark] button:not(:disabled):hover{border-color:var(--accent);box-shadow:none}
 .status-dot{box-shadow:0 0 6px var(--green)}
 .review-queue button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);box-shadow:none}
-:root:not([data-theme=light]) #live-terminal,:root:not([data-theme=light]) .review-panel .md{background-image:radial-gradient(#262c3a 1px,transparent 1px);background-size:18px 18px}
+:root[data-theme=dark] #live-terminal,:root[data-theme=dark] .review-panel .md{background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:18px 18px}
+.live-banner{margin:8px 0;padding:8px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface-2);font-size:12px}.live-banner[data-bad=true]{border-color:var(--red);color:var(--text)}.live-banner[hidden]{display:none}.ov-attention{border:1px solid var(--yellow);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:12px}.ov-attention p{margin:4px 0}.ov-attention[hidden]{display:none}
+
+/* PaperColor (after the vim colour scheme by NLKNguyen): one light and one dark variant, selectable in Settings */
+:root[data-theme=papercolor-light]{color-scheme:light;--bg:#eeeeee;--surface:#e4e4e4;--surface-2:#d7d7d7;--line:#bcbcbc;--line-strong:#878787;--text:#444444;--muted:#666666;--accent:#005f87;--pink:#af005f;--purple:#8700af;--cyan:#005f87;--green:#008700;--yellow:#8a6d00;--orange:#c25400;--red:#af0000;--magenta:#af005f;--accent-soft:#cfe3ec;--shadow:#00000018;--on-primary:#ffffff}
+:root[data-theme=papercolor-dark]{color-scheme:dark;--bg:#1c1c1c;--surface:#262626;--surface-2:#303030;--line:#444444;--line-strong:#585858;--text:#d0d0d0;--muted:#9a9a9a;--accent:#5fafd7;--pink:#ff5faf;--purple:#af87d7;--cyan:#5fd7d7;--green:#afd700;--yellow:#d7af5f;--orange:#ff8700;--red:#ff5f5f;--magenta:#ff5faf;--accent-soft:#1f3a47;--shadow:#00000066;--on-primary:#1c1c1c}
+:root[data-theme=papercolor-light] .rail,:root[data-theme=papercolor-dark] .rail{background:var(--surface)}
+:root[data-theme=papercolor-light] .nav-item.active,:root[data-theme=papercolor-dark] .nav-item.active{background:var(--surface-2);color:var(--text)}
+/* Match the README banner by default: "agent" in off-white, "VIEW" in the same soft pink */
+:root[data-theme=dark] .brand{color:#f8f8f2}:root[data-theme=dark] .brand-light{color:var(--pink);font-weight:700}
+
+/* Structure: page header, metric tiles and cards (console layout) */
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.page-head h2{font-size:20px;margin:0 0 6px}.page-head p{margin:0;max-width:78ch;line-height:1.55}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--muted);white-space:nowrap}.mono{font-family:var(--mono)}.chip:empty{display:none}
+.stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px;background:var(--surface)}
+.stat{padding:16px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;min-width:0}.stat:last-child{border-right:0}
+.stat-label{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.4px;text-transform:uppercase}
+.stat-value{font-family:var(--mono);font-size:26px;font-weight:500;color:var(--text);overflow-wrap:anywhere}.stat-value[data-bad=true]{color:var(--yellow)}
+.stat-sub{font-size:11px;color:var(--muted)}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:var(--surface);min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 12px}.card-head h3{font-size:13px;margin:0;font-weight:600}.card-head p{margin:0}
+.card+.card,.card .card-head+.inline-form{margin-top:0}.card .card-head:not(:first-child){margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.overview-panel .filters{margin-bottom:10px}.overview-panel .ov-scroll{border-radius:8px}
+.ov-attention p{margin:6px 0;font-size:12px;line-height:1.5}.ov-attention{border:0;padding:0}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}.stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}.stat:nth-child(2){border-right:0}.stat:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+:root[data-theme=dark] main{background-image:radial-gradient(#2a2e30 1px,transparent 1px);background-size:22px 22px}
+/* Same console structure on every page: heading row with a rule, then card-like panels */
+.usage-panel,.settings-panel,.live-panel{max-width:1280px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 14px;margin:0 0 18px;border-bottom:1px solid var(--line)}
+.panel-title h2{font-size:20px;font-weight:600;margin:0}
+.usage-panel .panel-title+*,.live-panel .panel-title+*{margin-top:0}
+.usage-panel table,.live-panel aside,.live-panel .live-main{border-radius:10px}
+.settings-panel fieldset{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:16px 18px;margin:0 0 16px}
+.settings-panel legend{font-family:var(--mono);font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);padding:0 6px}
+/* Notes library */
+.notes-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start}
+.notes-list h4{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:14px 0 6px}
+.notes-group{display:flex;flex-direction:column;gap:2px}
+.notes-item{text-align:left;border:0;background:transparent;color:var(--text);padding:6px 8px;border-radius:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notes-item:hover,.notes-item[data-active=true]{background:var(--surface-2)}
+.notes-editor>*+*{margin-top:12px}.grow{flex:1 1 auto}.notes-editor .inline-form label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+.md-toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.md-toolbar button{padding:4px 10px;font-size:12px}
+.md-panes{display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:380px}
+.md-panes[data-view=edit]{grid-template-columns:1fr}.md-panes[data-view=edit] #note-preview{display:none}
+.md-panes[data-view=preview]{grid-template-columns:1fr}.md-panes[data-view=preview] #note-body{display:none}
+#note-body{min-height:380px;resize:vertical;font-family:var(--mono);font-size:13px;line-height:1.55;width:100%}
+#note-preview{border:1px solid var(--line);border-radius:8px;padding:12px 16px;overflow:auto;max-height:70vh;background:var(--bg)}
+#bundle-box .inline-form{margin-top:10px}
+@media(max-width:1000px){.notes-layout,.md-panes{grid-template-columns:1fr}}
+
+/* Usage and Sessions: card tables, section headings and setup block in the console style */
+.usage-panel h3{font-size:13px;font-weight:600;margin:22px 0 6px}
+.usage-scroll{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.usage-toolbar{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:14px}
+.usage-providers{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.usage-providers:empty{display:none}.usage-providers>*{border-right:1px solid var(--line);padding:14px 16px}.usage-providers>*:last-child{border-right:0}
+.live-panel #live-setup{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px}

@@ -21,8 +21,8 @@ import re
 
 
 def check_render(path, theme="dark"):
-    accent={"dark":"#9562f5","light":"#0057d1"}[theme]
-    background={"dark":"#13181f","light":"#ffffff"}[theme]
+    accent={"dark":"#66d9ef","light":"#0057d1"}[theme]
+    background={"dark":"#1b1d1e","light":"#ffffff"}[theme]
     result = subprocess.run(["magick", str(path), "-background", background, "-alpha", "remove", "-alpha", "off",
                              "-fuzz", "14%", "-fill", "black", "+opaque", accent,
                              "-fill", "white", "-opaque", accent, "-format", "%[fx:mean]", "info:"],

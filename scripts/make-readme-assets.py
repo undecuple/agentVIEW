@@ -22,7 +22,7 @@ import struct
 import zlib
 
 ROOT = Path(__file__).resolve().parent.parent
-DARK_COLORS = ["#0c0a12", "#14121b", "#3d3656", "#8f74ff", "#c4b5fd", "#ffffff", "#8d88a0"]
+DARK_COLORS = ["#1b1d1e", "#232526", "#465457", "#f08cb0", "#66d9ef", "#f8f8f2", "#8f9ca0"]
 LIGHT_COLORS = ["#ffffff", "#eaeaea", "#acacac", "#0057d1", "#008c99", "#16181a", "#596274"]
 COLORS = DARK_COLORS
 BG, PANEL, RULE, PINK, MINT, WHITE, MUTED = range(len(COLORS))
@@ -69,6 +69,8 @@ class Art:
     def __init__(self, width, height, title):
         self.width, self.height, self.title = width, height, title
         self.items = []
+        self.groups = {}  # name -> (first item, end item), for animated SVG output only
+        self.animation = None  # (duration seconds, [(start fraction, visible group name)])
         self.rect(0, 0, width, height, BG)
 
     def rect(self, x, y, w, h, color, dither=False):
@@ -90,6 +92,22 @@ class Art:
                         self.rect(x + col * scale, y + row * scale, scale, scale, color, dither)
             x += scale * 6
 
+    def begin(self, name):
+        self._open = (name, len(self.items))
+
+    def end(self):
+        name, start = self._open
+        self.groups[name] = (start, len(self.items))
+
+    def eye(self, x, y, unit, rows, name):
+        # '#' lid outline (pink), 'M' iris (mint), 'W' highlight (white)
+        self.begin(name)
+        for r, line in enumerate(rows):
+            for c, ch in enumerate(line):
+                if ch != ".":
+                    self.rect(x + c * unit, y + r * unit, unit, unit, {"#": PINK, "M": MINT, "W": WHITE}[ch])
+        self.end()
+
     def svg(self):
         out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.width}" height="{self.height}" '
                f'viewBox="0 0 {self.width} {self.height}" role="img" aria-labelledby="title">',
@@ -97,7 +115,20 @@ class Art:
                '<defs><pattern id="dither" width="4" height="4" patternUnits="userSpaceOnUse">'
                f'<path d="M0 0h2v2H0zM2 2h2v2H2z" fill="{COLORS[RULE]}"/>'
                '</pattern></defs><g shape-rendering="crispEdges">']
-        for item in self.items:
+        starts = {a: n for n, (a, b) in self.groups.items()}
+        ends = {b for a, b in self.groups.values()}
+        for index, item in enumerate(self.items + [None]):
+            if index in ends:
+                out.append("</g>")
+            if index in starts and self.animation:
+                duration, steps = self.animation
+                name = starts[index]
+                values = ";".join("1" if step == name else "0" for _, step in steps)
+                times = ";".join(f"{start:.3f}" for start, _ in steps)
+                out.append(f'<g id="{name}" opacity="{1 if steps[0][1] == name else 0}"><animate attributeName="opacity" calcMode="discrete" '
+                           f'dur="{duration}s" repeatCount="indefinite" keyTimes="{times}" values="{values}"/>')
+            if item is None:
+                continue
             if item[0] == "rect":
                 _, x, y, w, h, color, dither = item
                 fill = "url(#dither)" if dither else COLORS[color]
@@ -170,9 +201,29 @@ def banner(social=False):
     art.frame(24, 24, 1232, h - 48, RULE)
     art.text("LOCAL // LINUX WORKSPACE", 64, 58, 2, MUTED)
     y = 176 if social else 108
-    art.text("agentVIEW", 70, y + 6, 14 if social else 12, RULE, True)
+    if social:
+        art.text("agentVIEW", 70, y + 6, 14, RULE, True)
+    else:
+        art.text("agent", 70, y + 6, 12, RULE, True)
     art.text("agent", 64, y, 14 if social else 12, WHITE)
-    art.text("VIEW", 484 if social else 424, y, 14 if social else 12, PINK)
+    if social:
+        art.text("VIEW", 484, y, 14, PINK)
+    else:
+        # README banner only: VIEW opens into a pixel eye, which blinks twice and turns back into VIEW.
+        art.begin("view")
+        art.text("VIEW", 430, y + 6, 12, RULE, True)
+        art.text("VIEW", 424, y, 12, PINK)
+        art.end()
+        open_eye = ["......############......", "....##............##....", "..##....MMMMMMMM....##..", "##....MMMWWMMMMMMM....##",
+                    "..##....MMMMMMMM....##..", "....##............##....", "......############......"]
+        open_eye = [row.ljust(24, ".")[:24] for row in open_eye]
+        half = ["", "", "....################....", "##....MMMWWMMMMMMM....##", "....################....", "", ""]
+        half = [row.ljust(24, ".")[:24] if row else "." * 24 for row in half]
+        closed = ["." * 24] * 3 + ["#" * 24] + ["." * 24] * 3
+        for name, rows in (("eye-open", open_eye), ("eye-half", half), ("eye-closed", closed)):
+            art.eye(424, y, 12, rows, name)
+        art.animation = (12, [(0, "view"), (.46, "eye-open"), (.60, "eye-half"), (.62, "eye-closed"), (.66, "eye-half"),
+                              (.68, "eye-open"), (.72, "eye-half"), (.74, "eye-closed"), (.78, "eye-half"), (.80, "eye-open"), (.88, "view")])
     icon(art, 1020, y - 4, 1)
     art.text("AGENTS. IN VIEW.", 64, y + (144 if social else 128), 3, MINT)
     if social:

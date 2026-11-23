@@ -5,6 +5,7 @@ use rusqlite::{params, Connection, OpenFlags, OptionalExtension, TransactionBeha
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Duration;
+pub mod notes;
 pub mod reviews;
 pub mod settings;
 pub use settings::{AppSettings,QuickPrompt,SettingsRecovery,SettingsSnapshot};
@@ -135,6 +136,7 @@ impl Store {
         }
         settings::initialize(&tx)?;
         reviews::initialize(&tx)?;
+        notes::initialize(&tx)?;
         db(tx.commit())?;
         let store = Self { connection };
         validate_hierarchy(&store.agents()?)?;
@@ -217,6 +219,8 @@ pub fn asset(path: &str) -> Option<(&'static str, &'static str)> {
         "/settings.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/settings.js"))),
         "/settings.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/settings.css"))),
         "/overview.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/overview.js"))),
+        "/claudecfg.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/claudecfg.js"))),
+        "/notes.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/notes.js"))),
         "/review.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/review.js"))),
         "/identity.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/identity.css"))),
         "/prefs.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/prefs.js"))),

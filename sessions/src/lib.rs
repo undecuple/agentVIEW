@@ -66,6 +66,9 @@ pub struct SessionInfo {
     pub remote_control: bool,
     /// Name shown everywhere and passed to the CLI: project, label, provider.
     pub display_name: String,
+    /// How the last run ended, when the app saw it end (for example `exit 1` or `signal 9`). Cleared on the next start.
+    pub exit_info: Option<String>,
+    pub exit_at: Option<String>,
 }
 
 /// `project · label · Provider`. The project is the folder name; it is dropped when the label already contains it.
@@ -217,7 +220,8 @@ fn metadata(row: &rusqlite::Row<'_>) -> rusqlite::Result<SessionInfo> {
         executable: row.get(3)?, version: row.get(4)?, recipe: row.get(5)?,
         attempted: row.get(6)?, generation: row.get(7)?, status: row.get(8)?, executable_identity: row.get(9)?,
         display_name: display_name(&row.get::<_, String>(1)?, &row.get::<_, String>(2)?, provider),
-        provider, provider_session_id: row.get(11)?, bootstrap_attempted: row.get(12)?, remote_control: row.get::<_, i64>(13)? != 0 })
+        provider, provider_session_id: row.get(11)?, bootstrap_attempted: row.get(12)?, remote_control: row.get::<_, i64>(13)? != 0,
+        exit_info: row.get(14)?, exit_at: row.get(15)? })
 }
 
 fn executable_identity(path: &Path) -> Result<String> {
@@ -296,6 +300,8 @@ impl SessionManager {
         usage::initialize(&tx)?;
         let has_remote: i64 = sql(tx.query_row("SELECT count(*) FROM pragma_table_info('sessions') WHERE name='remote_control'", [], |r| r.get(0)))?;
         if has_remote == 0 { sql(tx.execute_batch("ALTER TABLE sessions ADD COLUMN remote_control INTEGER NOT NULL DEFAULT 0 CHECK(remote_control IN (0,1));"))?; }
+        let has_exit: i64 = sql(tx.query_row("SELECT count(*) FROM pragma_table_info('sessions') WHERE name='exit_info'", [], |r| r.get(0)))?;
+        if has_exit == 0 { sql(tx.execute_batch("ALTER TABLE sessions ADD COLUMN exit_info TEXT; ALTER TABLE sessions ADD COLUMN exit_at TEXT;"))?; }
         // Recovery is metadata-only. Never relaunch or resend terminal input.
         sql(tx.execute("UPDATE sessions SET status='interrupted' WHERE status IN ('running','launching')", []))?;
         sql(tx.execute("UPDATE sessions SET status='bootstrap_unknown' WHERE status='bootstrapping'", []))?;
@@ -390,8 +396,11 @@ impl SessionManager {
         for (id, run) in &mut self.running {
             if let Some(child) = &run.child {
                 if sys::exited(child.id()).map_err(|_| "Cannot inspect owned session process")? {
+                    use std::os::unix::process::ExitStatusExt;
+                    let info = run.child.as_mut().and_then(|c| c.try_wait().ok().flatten()).map(|s| match (s.code(), s.signal()) {
+                        (Some(c), _) => format!("exit {c}"), (None, Some(g)) => format!("signal {g}"), _ => "ended".to_string() });
                     run.stop();
-                    sql(self.connection.execute("UPDATE sessions SET status='exited' WHERE id=?1", [id]))?;
+                    sql(self.connection.execute("UPDATE sessions SET status='exited',exit_info=?2,exit_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id=?1", params![id, info]))?;
                 }
             }
         }
@@ -457,7 +466,7 @@ impl SessionManager {
         if self.cancel.load(Ordering::Acquire) { return Err("Session launch cancelled by workspace close".into()); }
         // An uncertain first launch must always recover by exact resume, never
         // make a second conversation or replay input after app/exec failure.
-        sql(self.connection.execute("UPDATE sessions SET attempted=1,generation=?1,status='launching' WHERE id=?2", params![generation,id]))?;
+        sql(self.connection.execute("UPDATE sessions SET attempted=1,generation=?1,status='launching',exit_info=NULL,exit_at=NULL WHERE id=?2", params![generation,id]))?;
         let mut command = Command::new(&tool.executable);
         command.current_dir(&info.project_dir).env("TERM", "xterm-256color").env("COLORTERM", "truecolor");
         match info.provider {
@@ -590,6 +599,15 @@ impl SessionManager {
         if let Some(run) = self.running.get_mut(id) { run.stop(); }
         sql(self.connection.execute("UPDATE sessions SET status='stopped' WHERE id=?1", [id]))?;
         self.get(id)
+    }
+    /// Stops every process this app started and returns how many were running. Marks them stopped (not exited).
+    pub fn stop_all(&mut self) -> Result<usize> {
+        let ids: Vec<String> = self.running.iter().filter(|(_, r)| r.child.is_some()).map(|(id, _)| id.clone()).collect();
+        for id in &ids {
+            if let Some(run) = self.running.get_mut(id) { run.stop(); }
+            sql(self.connection.execute("UPDATE sessions SET status='stopped',exit_info=NULL,exit_at=NULL WHERE id=?1", [id]))?;
+        }
+        Ok(ids.len())
     }
     pub fn shutdown(&mut self) -> Result<()> {
         for run in self.running.values_mut() { run.stop(); }

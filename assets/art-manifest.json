@@ -2,23 +2,23 @@
   "generator": "scripts/make-readme-assets.py",
   "fonts": [],
   "palette": [
-    "#0c0a12",
-    "#14121b",
-    "#3d3656",
-    "#8f74ff",
-    "#c4b5fd",
-    "#ffffff",
-    "#8d88a0"
+    "#1b1d1e",
+    "#232526",
+    "#465457",
+    "#f08cb0",
+    "#66d9ef",
+    "#f8f8f2",
+    "#8f9ca0"
   ],
   "palettes": {
     "dark": [
-      "#0c0a12",
-      "#14121b",
-      "#3d3656",
-      "#8f74ff",
-      "#c4b5fd",
-      "#ffffff",
-      "#8d88a0"
+      "#1b1d1e",
+      "#232526",
+      "#465457",
+      "#f08cb0",
+      "#66d9ef",
+      "#f8f8f2",
+      "#8f9ca0"
     ],
     "light": [
       "#ffffff",

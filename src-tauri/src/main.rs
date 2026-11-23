@@ -8,6 +8,9 @@ use std::sync::{Arc, Mutex};
 use tauri::{http::Response, webview::NewWindowResponse, Manager, WebviewUrl, WebviewWindowBuilder};
 
 mod review;
+mod notes;
+mod claude_config;
+mod bundle;
 #[cfg(feature = "e2e")]
 mod e2e;
 #[cfg(feature="workspace-e2e")]
@@ -137,7 +140,7 @@ fn main() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![workspace_snapshot, workspace_send, workspace_control, workspace_tick, workspace_open_docs, live::live_probe, live::live_snapshot, live::live_create, live::live_set_remote, live::live_rename, live::live_activity, review::review_files, review::review_load, review::review_mark, review::review_clear, live::live_start, live::live_read, live::live_write, live::live_resize, live::live_stop, live::usage_snapshot, live::usage_refresh, settings::app_settings_snapshot, settings::app_settings_save, settings::app_settings_reset, settings::app_settings_apply, settings::app_about, settings::app_diagnostics_export])
+        .invoke_handler(tauri::generate_handler![workspace_snapshot, workspace_send, workspace_control, workspace_tick, workspace_open_docs, live::live_probe, live::live_snapshot, live::live_create, live::live_set_remote, live::live_rename, live::live_activity, live::live_stop_all, review::review_files, review::review_load, review::review_mark, review::review_clear, notes::notes_list, claude_config::claude_config_view, notes::notes_get, notes::notes_save, notes::notes_delete, notes::notes_revision, notes::notes_render, bundle::bundle_export, bundle::bundle_list, bundle::bundle_preview, bundle::bundle_import, live::live_start, live::live_read, live::live_write, live::live_resize, live::live_stop, live::usage_snapshot, live::usage_refresh, settings::app_settings_snapshot, settings::app_settings_save, settings::app_settings_reset, settings::app_settings_apply, settings::app_about, settings::app_diagnostics_export])
         .register_uri_scheme_protocol("workspace", move |_ctx,req| {
             #[cfg(feature="workspace-e2e")]
             eprintln!("WORKSPACE_REQUEST {}",req.uri());

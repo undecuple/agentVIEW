@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-notes-render"
+description = "Enables the notes_render command without any pre-configured scope."
+commands.allow = ["notes_render"]
+
+[[permission]]
+identifier = "deny-notes-render"
+description = "Denies the notes_render command without any pre-configured scope."
+commands.deny = ["notes_render"]

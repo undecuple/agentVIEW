@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-bundle-import"
+description = "Enables the bundle_import command without any pre-configured scope."
+commands.allow = ["bundle_import"]
+
+[[permission]]
+identifier = "deny-bundle-import"
+description = "Denies the bundle_import command without any pre-configured scope."
+commands.deny = ["bundle_import"]

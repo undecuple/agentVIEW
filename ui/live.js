@@ -23,6 +23,11 @@
     $('live-start').textContent=s&&!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first`:s&&(s.attempted||s.bootstrap_attempted)&&!s.provider_session_id?'Identity needs review':s&&s.attempted?'Resume saved ID':'Start new session';
     $('live-start').disabled=busy||!s||active(s)||!tools.has(s.provider)||((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id);$('live-stop').disabled=busy||!active(s);
     $('live-state').textContent=s?s.status:'Not started';
+    {const b=$('live-banner');let m='';
+      if(s&&s.status==='exited')m=`This session ended${s.exit_info?' ('+s.exit_info+')':''}${s.exit_at?' at '+new Date(s.exit_at).toLocaleTimeString():''}. Nothing was resent. Start it to resume the saved conversation.`;
+      else if(s&&s.status==='interrupted')m='This session was running when the app last closed. Nothing was resent. Start it to resume.';
+      else if(s&&s.status==='bootstrap_unknown')m='Setup of this session was interrupted. Check it in the provider before starting.';
+      b.textContent=m;b.hidden=!m;b.dataset.bad=String(!!s&&s.status==='exited'&&!!s.exit_info&&s.exit_info!=='exit 0');}
     renderExtra(s);
     $('live-quick-target').textContent=s?`Paste target: ${providerName(s.provider)} · ${s.label}`:'Select a running coordinator';
     document.querySelectorAll('[data-quick],#live-paste-custom').forEach(button=>button.disabled=busy||!active(s));

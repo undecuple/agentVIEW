@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-bundle-preview"
+description = "Enables the bundle_preview command without any pre-configured scope."
+commands.allow = ["bundle_preview"]
+
+[[permission]]
+identifier = "deny-bundle-preview"
+description = "Denies the bundle_preview command without any pre-configured scope."
+commands.deny = ["bundle_preview"]

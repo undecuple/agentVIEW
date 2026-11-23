@@ -15,8 +15,10 @@ dependencies = [
  "agent-app-core",
  "agent-app-sessions",
  "agent-app-workspace",
+ "libc",
  "serde",
  "serde_json",
+ "sha2 0.11.1",
  "tauri",
  "tauri-build",
 ]

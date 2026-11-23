@@ -23,6 +23,8 @@ pub struct Activity {
     pub idle_ms: Option<u64>,
     pub action: Option<String>,
     pub action_at: Option<String>,
+    pub exit_info: Option<String>,
+    pub exit_at: Option<String>,
 }
 
 /// Latest tool name in the tail of a Claude Code session log. Names are limited to a short safe alphabet.
@@ -58,7 +60,7 @@ impl SessionManager {
             out.push(Activity {
                 project: std::path::Path::new(&s.project_dir).file_name().and_then(|n| n.to_str()).unwrap_or("").chars().filter(|c| !c.is_control()).take(60).collect(),
                 id: s.id, display_name: s.display_name, label: s.label, provider: s.provider, status: s.status, running,
-                output_total, input_total, idle_ms, action, action_at: action_at.flatten(),
+                output_total, input_total, idle_ms, action, action_at: action_at.flatten(), exit_info: s.exit_info, exit_at: s.exit_at,
             });
         }
         Ok(out)

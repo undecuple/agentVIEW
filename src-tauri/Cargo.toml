@@ -9,6 +9,8 @@ description = "Read-only viewer for shared docs, gate status and diffs"
 agent-app-sessions = { path = "../sessions" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.11"
+libc = "0.2"
 agent-app-core = { path = "../core" }
 agent-app-workspace = { path = "../workspace" }
 tauri = { version = "=2.12.6", default-features = false, features = ["wry"] }
