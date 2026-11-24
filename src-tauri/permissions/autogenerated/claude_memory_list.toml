@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-memory-list"
+description = "Enables the claude_memory_list command without any pre-configured scope."
+commands.allow = ["claude_memory_list"]
+
+[[permission]]
+identifier = "deny-claude-memory-list"
+description = "Denies the claude_memory_list command without any pre-configured scope."
+commands.deny = ["claude_memory_list"]

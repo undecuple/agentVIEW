@@ -79,7 +79,7 @@
       for(const [name,btn] of views){
         $(btn).click();await sleep(300);stress();
         await check(name,scale);
-        if(name==='cc'){for(const tb of ['settings','skills','projects']){window.AppCcTabs.select(tb);await check('cc-'+tb,scale);}}
+        if(name==='cc'){for(const tb of ['settings','skills','memory','history','projects']){window.AppCcTabs.select(tb);await check('cc-'+tb,scale);}}
         if(name==='settings'){for(const tab of ['data','notifications','about']){window.AppSettingsTabs.select(tab);await check('settings-'+tab,scale);}window.AppSettingsTabs.select('general');}
         report('capture',`${name}-${scale}`);await sleep(1300);
       }

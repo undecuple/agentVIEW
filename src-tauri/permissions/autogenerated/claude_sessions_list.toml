@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-sessions-list"
+description = "Enables the claude_sessions_list command without any pre-configured scope."
+commands.allow = ["claude_sessions_list"]
+
+[[permission]]
+identifier = "deny-claude-sessions-list"
+description = "Denies the claude_sessions_list command without any pre-configured scope."
+commands.deny = ["claude_sessions_list"]

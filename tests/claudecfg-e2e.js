@@ -26,6 +26,15 @@
     await until(()=>$('ci-rows').children.length===3,'three inventory entries');
     const ip=$('cc').innerText;
     assert(!/SECRET-BODY/.test(ip)&&ip.includes('Summarises synthetic text')&&ip.includes('Deploy the synthetic thing')&&ip.includes('model: synthetic-small'),'inventory shows names and descriptions, never bodies');
+    window.AppCcTabs.select('memory');
+    await until(()=>$('cm-select').options.length>=2&&$('cm-text').textContent.includes('Be brief'),'memory list and first file');
+    $('cm-select').value=[...$('cm-select').options].find(o=>o.textContent.includes('pref.md')).value;$('cm-select').dispatchEvent(new Event('change'));
+    await until(()=>$('cm-text').textContent.includes('synthetic data'),'second memory file shown');
+    window.AppCcTabs.select('history');
+    await until(()=>$('ch-rows').children.length===1,'one past session');
+    const hp=$('cc').innerText;
+    assert(hp.includes('claude --resume 11111111-2222-3333-4444-555555555555')&&hp.includes('-work-demo'),'history shows resume command and project');
+    assert(!/SECRET-CONVERSATION-TEXT/.test(hp),'conversation text never opened');
     report('result','pass');
   }catch(e){report('result','fail:'+e.message);}
 })();

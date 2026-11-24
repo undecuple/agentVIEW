@@ -23,6 +23,10 @@ JSON
 printf -- '---\nname: demo-skill\ndescription: Summarises synthetic text\n---\nBody SECRET-BODY\n' > "$run/claudedir/skills/demo-skill/SKILL.md"
 printf -- '---\ndescription: Deploy the synthetic thing\n---\nrun SECRET-BODY\n' > "$run/claudedir/commands/deploy.md"
 printf -- '---\nname: reviewer\ndescription: Reviews synthetic code\nmodel: synthetic-small\ntools: Read, Grep\n---\nSECRET-BODY\n' > "$run/claudedir/agents/reviewer.md"
+mkdir -p "$run/claudedir/projects/-work-demo/memory"
+printf '# Global rule\nBe brief.\n' > "$run/claudedir/CLAUDE.md"
+printf '# Memory note\nUser prefers synthetic data.\n' > "$run/claudedir/projects/-work-demo/memory/pref.md"
+printf '{"type":"user","message":"SECRET-CONVERSATION-TEXT"}\n' > "$run/claudedir/projects/-work-demo/11111111-2222-3333-4444-555555555555.jsonl"
 export AGENT_APP_DATA_DIR="$run/data" AGENT_APP_CONFIG="$run/config/allowlist.toml" AGENT_APP_TEST_CCFG=1 AGENT_APP_TEST_PHASE=first AGENT_APP_TEST_CLAUDE_JSON="$run/claude.json" AGENT_APP_TEST_CLAUDE_DIR="$run/claudedir"
 export WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11
 timeout --kill-after=8 60 xvfb-run -a -s '-screen 0 1440x1000x24' "$PWD/target/debug/agent-app" > "$run/ccfg.log" 2>&1 || { tail -30 "$run/ccfg.log";exit 1; }

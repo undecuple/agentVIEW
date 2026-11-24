@@ -13,7 +13,7 @@ use std::sync::Arc;
 const FILE_CAP: u64 = 1024 * 1024;
 const HEAD_CAP: u64 = 4096;
 
-fn root() -> Option<PathBuf> {
+pub(crate) fn root() -> Option<PathBuf> {
     #[cfg(feature = "workspace-e2e")]
     if let Some(p) = std::env::var_os("AGENT_APP_TEST_CLAUDE_DIR") { return Some(PathBuf::from(p)); }
     std::env::var_os("CLAUDE_CONFIG_DIR").map(PathBuf::from).filter(|p| p.is_absolute())
@@ -21,7 +21,7 @@ fn root() -> Option<PathBuf> {
 }
 fn short(s: &str, n: usize) -> String { policy::redact(&s.chars().filter(|c| !c.is_control()).take(n).collect::<String>()) }
 
-fn read_head(path: &Path, cap: u64) -> Option<String> {
+pub(crate) fn read_head(path: &Path, cap: u64) -> Option<String> {
     let f = std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW).open(path).ok().or_else(|| {
         // A symlinked entry (for example one managed by home-manager) is allowed when it resolves to a plain file.
         let real = std::fs::canonicalize(path).ok()?; if !real.is_file() { return None; }
@@ -116,7 +116,7 @@ fn first_body_line(text: &str) -> String {
     let body = if text.starts_with("---") { text.splitn(3, "---").nth(2).unwrap_or("") } else { text };
     body.lines().map(|l| l.trim().trim_start_matches('#').trim()).find(|l| !l.is_empty()).unwrap_or("").to_string()
 }
-fn ok_name(n: &str) -> bool { !n.is_empty() && n.len() <= 80 && n.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b':')) }
+pub(crate) fn ok_name(n: &str) -> bool { !n.is_empty() && n.len() <= 80 && n.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b':')) }
 
 fn scan(dir: &Path, kind: &'static str, cfg: &Config, out: &mut Vec<Entry>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };

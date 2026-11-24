@@ -27,8 +27,8 @@
   let inv=[];
   function tab(name){
     for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]'))b.setAttribute('aria-selected',String(b.dataset.ccTab===name));
-    for(const n of ['projects','settings','skills'])$('cc-pane-'+n).hidden=n!==name;
-    if(name==='settings')loadSettings();if(name==='skills')loadInv();
+    for(const n of ['projects','settings','skills','memory','history'])$('cc-pane-'+n).hidden=n!==name;
+    if(name==='settings')loadSettings();if(name==='skills')loadInv();if(name==='memory')loadMem();if(name==='history')loadHist();
   }
   async function loadSettings(){
     let v;try{v=await invoke('claude_settings_view');}catch(e){$('cs-note').textContent=String(e);return;}
@@ -48,6 +48,25 @@
     for(const e of inv.filter(e=>!q||(e.name+' '+e.description).toLowerCase().includes(q))){const tr=document.createElement('tr');cell(tr,e.kind);cell(tr,e.name,'mono');cell(tr,e.description);cell(tr,e.extra);body.append(tr);}
   }
   async function loadInv(){try{inv=await invoke('claude_inventory');}catch{inv=[];}drawInv();}
+  let mem=[],sess=[];
+  async function showMem(){
+    const k=$('cm-select').value;if(!k){$('cm-text').textContent='';$('cm-meta').textContent='No memory or instruction files found.';return;}
+    try{const f=await invoke('claude_memory_read',{key:k});$('cm-text').textContent=f.text;$('cm-meta').textContent=f.truncated?'Showing the first 64 KB.':'';}catch(e){$('cm-text').textContent='';$('cm-meta').textContent=String(e);}
+  }
+  async function loadMem(){
+    try{mem=await invoke('claude_memory_list');}catch{mem=[];}
+    const sel=$('cm-select');sel.replaceChildren();
+    for(const e of mem){const o=document.createElement('option');o.value=e.key;o.textContent=`${e.group} / ${e.name}`;sel.append(o);}
+    showMem();
+  }
+  function drawHist(){
+    const q=$('ch-filter').value.trim().toLowerCase();const body=$('ch-rows');body.replaceChildren();
+    for(const s of sess.filter(s=>!q||(s.project+' '+s.id).toLowerCase().includes(q)).slice(0,200)){
+      const tr=document.createElement('tr');cell(tr,new Date(s.modified*1000).toLocaleString());cell(tr,s.project);cell(tr,s.size>=1048576?`${(s.size/1048576).toFixed(1)} MB`:`${Math.max(1,Math.round(s.size/1024))} KB`);cell(tr,s.resume,'mono');body.append(tr);
+    }
+  }
+  async function loadHist(){try{sess=await invoke('claude_sessions_list');}catch{sess=[];}drawHist();}
+  $('cm-select').onchange=showMem;$('ch-filter').oninput=drawHist;
   for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]'))b.onclick=()=>tab(b.dataset.ccTab);
   $('ci-filter').oninput=drawInv;
   $('show-cc').addEventListener('click',()=>tab('projects'));

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-memory-read"
+description = "Enables the claude_memory_read command without any pre-configured scope."
+commands.allow = ["claude_memory_read"]
+
+[[permission]]
+identifier = "deny-claude-memory-read"
+description = "Denies the claude_memory_read command without any pre-configured scope."
+commands.deny = ["claude_memory_read"]

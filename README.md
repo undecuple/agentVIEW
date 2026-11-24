@@ -49,6 +49,7 @@ Tested locally on Linux with WebKitGTK and a private X display:
 | Backup | Copies the app's exports folder to an rclone remote you already set up, dry run first, add-only |
 | Claude hook | Optional: paste one hook into your own Claude settings so the app can tell you exactly when Claude is waiting for a permission decision; the app only reads the signal file and never approves anything |
 | Claude settings | Read-only tabs on the Claude config page: permission rules, hooks, env names (no values), skills, commands and agents |
+| Claude memory and history | Read-only tabs: memory notes and CLAUDE.md files, and past Claude sessions with a resume command (conversations are never opened) |
 | Notes | Markdown library on shelves in the app's own storage: editor, live preview, save history, search; never touches your repositories |
 | Claude config | Read-only, redacted view of Claude Code's state file (folders, trust flags, MCP server names); never shows secrets and never writes |
 | Pre-PR review | Queue of allow-listed drafts with a checklist and a PASS (manual review) label tied to the file's hash; your own note, not an approval |
