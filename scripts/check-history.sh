@@ -8,7 +8,12 @@ while read -r h; do
   # Optional third argument: one extra exact e-mail accepted as AUTHOR only (the committer must still match).
   [[ "$ae" =~ $re || ( -n "$extra_author" && "$ae" == "$extra_author" ) ]] || { echo "history: bad author on $h"; fail=1; }
   [[ "$ce" =~ $re ]] || { echo "history: bad committer on $h"; fail=1; }
-  if git log -1 --format=%B "$h" | grep -Eiq 'Co-Authored-By:|Claude-Session:|Generated with|claude\.ai/code'; then
+  msg=$(git log -1 --format=%B "$h")
+  # Dependabot's own commits end with this exact trailer. It is dropped only for a commit whose AUTHOR is the extra accepted e-mail; any other attribution line still fails.
+  if [[ -n "$extra_author" && "$ae" == "$extra_author" ]]; then
+    msg=$(printf '%s\n' "$msg" | grep -vxF "Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>" || true)
+  fi
+  if printf '%s\n' "$msg" | grep -Eiq 'Co-Authored-By:|Claude-Session:|Generated with|claude\.ai/code'; then
     echo "history: attribution line in $h"; fail=1
   fi
   git ls-tree -r --name-only -z "$h" | ./scripts/scan-files.sh "$h" || { echo "history: bad file in $h"; fail=1; }
