@@ -14,7 +14,7 @@ for provider in claude codex; do
   tail -n +2 tests/live-cli-fixture.py >> "$run/$provider-fixture"; chmod 700 "$run/$provider-fixture"
 done
 export AGENT_APP_DATA_DIR="$run/data" AGENT_APP_CONFIG="$run/config/allowlist.toml"
-export AGENT_APP_TEST_LIVE=1 AGENT_APP_TEST_CLAUDE="$run/claude-fixture" AGENT_APP_TEST_CODEX="$run/codex-fixture" AGENT_APP_TEST_PROJECT_ROOT="$run"
+export AGENT_APP_TEST_POLL_MS=300 AGENT_APP_TEST_LIVE=1 AGENT_APP_TEST_CLAUDE="$run/claude-fixture" AGENT_APP_TEST_CODEX="$run/codex-fixture" AGENT_APP_TEST_PROJECT_ROOT="$run"
 export WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11
 for phase in first restart; do
   export AGENT_APP_TEST_PHASE="$phase"

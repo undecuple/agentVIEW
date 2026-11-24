@@ -12,6 +12,11 @@ use std::time::{Duration, Instant};
 
 const IDLE_MS: u64 = 10 * 60 * 1000;
 const POLL: Duration = Duration::from_secs(30);
+fn poll_interval() -> Duration {
+    #[cfg(feature = "workspace-e2e")]
+    if let Some(ms) = std::env::var("AGENT_APP_TEST_POLL_MS").ok().and_then(|v| v.parse::<u64>().ok()) { return Duration::from_millis(ms.clamp(50, 30_000)); }
+    POLL
+}
 const MAX_PER_HOUR: usize = 20;
 static LAST: Mutex<String> = Mutex::new(String::new());
 static SENT: Mutex<Vec<(i64, Instant)>> = Mutex::new(Vec::new());
@@ -94,15 +99,47 @@ pub fn decide(seen: &mut HashMap<String, Seen>, acts: &[Activity]) -> Vec<(&'sta
     out
 }
 
+/// New Claude Notification-hook lines become "waiting" messages. The agent is named after the registered session in that folder,
+/// otherwise the folder name. The same session and kind is reported at most once a minute. Lines written before the app started are ignored.
+fn hook_messages(offset: &mut Option<u64>, seen: &mut HashMap<(String, String), Instant>, acts: &[Activity]) -> Vec<(&'static str, String)> {
+    let Ok(path) = super::hooksignal::file() else { return vec![] };
+    let Some(off) = offset.as_mut() else { *offset = Some(super::hooksignal::file_len(&path)); return vec![] };
+    seen.retain(|_, t| t.elapsed() < Duration::from_secs(60));
+    let mut out = Vec::new();
+    for s in super::hooksignal::read_new(&path, off) {
+        let Some(what) = super::hooksignal::waiting_text(&s.kind) else { continue };
+        if seen.insert((s.session.clone(), s.kind.clone()), Instant::now()).is_some() { continue; }
+        let name = acts.iter().find(|a| !s.cwd.is_empty() && a.project == s.cwd).map(|a| clean_name(&a.display_name))
+            .unwrap_or_else(|| clean_name(s.cwd.rsplit('/').find(|p| !p.is_empty()).unwrap_or("a Claude Code session")));
+        let note = if s.message.is_empty() { String::new() } else { format!(": \"{}\"", s.message.chars().take(140).collect::<String>()) };
+        out.push(("waiting", format!("agentVIEW: {name} (Claude Code) {what}{note}")));
+    }
+    out
+}
+
 pub fn start_monitor(app: tauri::AppHandle) {
     use tauri::Manager;
     std::thread::spawn(move || {
         let mut seen: HashMap<String, Seen> = HashMap::new();
+        let mut last = Instant::now();
+        let mut sig_offset: Option<u64> = None;
+        let mut sig_seen: HashMap<(String, String), Instant> = HashMap::new();
         loop {
-            std::thread::sleep(POLL);
+            std::thread::sleep(poll_interval());
+            let dt = last.elapsed().min(Duration::from_secs(90)).as_millis() as i64;
+            last = Instant::now();
             let live = app.state::<super::live::LiveState>();
-            let Some(acts) = live.peek_activity() else { continue };
-            let msgs = decide(&mut seen, &acts);
+            let acts = live.peek_activity();
+            let mut msgs: Vec<(&'static str, String)> = Vec::new();
+            if let Some(acts) = &acts {
+                let samples = super::timelog::sample(acts, dt);
+                if !samples.is_empty() {
+                    let state = app.state::<super::WorkspaceState>();
+                    if let Ok(m) = state.0.as_ref() { if let Ok(mut s) = m.lock() { let _ = s.time_add(&samples); } }
+                }
+                msgs.extend(decide(&mut seen, acts));
+            }
+            msgs.extend(hook_messages(&mut sig_offset, &mut sig_seen, acts.as_deref().unwrap_or(&[])));
             if msgs.is_empty() { continue; }
             let state = app.state::<super::WorkspaceState>();
             let hooks = state.0.as_ref().ok().and_then(|m| m.lock().ok()).and_then(|s| s.webhooks().ok()).unwrap_or_default();

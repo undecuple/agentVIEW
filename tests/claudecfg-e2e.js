@@ -14,6 +14,18 @@
     assert($('cc-mcp').textContent.includes('deploy-tool')&&$('cc-body').textContent.includes('has secrets, hidden'),'MCP names shown, secrets only flagged');
     assert($('cc-projects').textContent==='2'&&$('cc-untrusted').textContent==='1'&&$('cc-missing').textContent==='1','counts');
     assert($('cc-note').textContent.includes('account data (not shown)'),'account data noted, not shown');
+    // Settings and inventory tabs: structure only
+    window.AppCcTabs.select('settings');
+    await until(()=>$('cs-allow').textContent==='2','settings loaded');
+    const sp=$('cc').innerText+$('cc').innerHTML;
+    assert(!/SECRET-HOOK-ARG|SECRET-ENV-VALUE|SECRET-HELPER|abcdefghijklmnopqrstuvwxyz012345/.test(sp),'no hook argument, env value, helper command or token reaches the settings tab');
+    assert($('cs-hook-rows').textContent.includes('notify-tool')&&$('cs-hook-rows').textContent.includes('permission_prompt'),'hook shows program name and matcher');
+    assert($('cs-other').textContent.includes('API_TOKEN')&&$('cs-other').textContent.includes('apiKeyHelper'),'env names and helper flag shown, values not');
+    assert($('cs-mode').textContent.includes('acceptEdits'),'default permission mode shown');
+    window.AppCcTabs.select('skills');
+    await until(()=>$('ci-rows').children.length===3,'three inventory entries');
+    const ip=$('cc').innerText;
+    assert(!/SECRET-BODY/.test(ip)&&ip.includes('Summarises synthetic text')&&ip.includes('Deploy the synthetic thing')&&ip.includes('model: synthetic-small'),'inventory shows names and descriptions, never bodies');
     report('result','pass');
   }catch(e){report('result','fail:'+e.message);}
 })();

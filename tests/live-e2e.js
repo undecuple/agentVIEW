@@ -169,6 +169,9 @@
         assert(!$('ov-stopall').disabled&&/Stop all running \(2\)/.test($('ov-stopall').textContent),'stop-all shows how many are running');
         $('ov-stopall').click();assert(!$('ov-stopall-confirm').hidden&&$('ov-stopall').hidden,'stop-all needs a second confirming click');
         $('ov-stopall-cancel').click();assert($('ov-stopall-confirm').hidden&&!$('ov-stopall').hidden,'stop-all can be cancelled');
+        await until(async()=>{const r=await invoke('time_report');return r.length>=2&&r.every(x=>x.all_running_ms>0);},'time per project is recorded for both projects');
+        await until(()=>$('ov-time-body').children.length>=2,'time per project card lists both projects');
+        assert($('ov-time-body').textContent.includes('min'),'durations are shown');
         $('show-flow').click();
         await until(()=>$('flow-svg').querySelectorAll('.flow-sess').length===2,'flow shows both registered sessions');
         assert($('flow-svg').querySelectorAll('.flow-prov').length===2&&$('flow-svg').querySelectorAll('.flow-sess[data-state=running]').length===2,'flow shows two providers and both sessions running');

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-hook-status"
+description = "Enables the claude_hook_status command without any pre-configured scope."
+commands.allow = ["claude_hook_status"]
+
+[[permission]]
+identifier = "deny-claude-hook-status"
+description = "Denies the claude_hook_status command without any pre-configured scope."
+commands.deny = ["claude_hook_status"]

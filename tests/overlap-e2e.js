@@ -38,8 +38,9 @@
     for(const b of boxes){
       const p=b.el.parentElement;if(!p||b.el===document.body)continue;
       const s=getComputedStyle(p);if(['auto','scroll','hidden','clip'].includes(s.overflowX)||s.display==='contents'||s.display==='inline')continue;
+      {const own=getComputedStyle(b.el);if(['hidden','clip'].includes(own.overflowX)&&own.textOverflow==='ellipsis')continue;} // an ellipsised element is meant to be cut
       const c=p.getBoundingClientRect();if(c.width===0)continue;
-      if(b.q.right>c.right+1.5||b.q.left<c.left-1.5)clipped.push('SPILL '+b.t);
+      if(b.q.right>c.right+1.5||b.q.left<c.left-1.5)clipped.push('SPILL '+b.el.tagName+'#'+(b.el.id||b.el.className)+' in '+p.tagName+'#'+(p.id||p.className)+' '+b.t);
     }
     return {hits,clipped,scrollX:document.documentElement.scrollWidth>window.innerWidth+1};
   }
@@ -78,6 +79,8 @@
       for(const [name,btn] of views){
         $(btn).click();await sleep(300);stress();
         await check(name,scale);
+        if(name==='cc'){for(const tb of ['settings','skills','projects']){window.AppCcTabs.select(tb);await check('cc-'+tb,scale);}}
+        if(name==='settings'){for(const tab of ['data','notifications','about']){window.AppSettingsTabs.select(tab);await check('settings-'+tab,scale);}window.AppSettingsTabs.select('general');}
         report('capture',`${name}-${scale}`);await sleep(1300);
       }
     }

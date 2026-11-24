@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>agentVIEW · Agent workspace</title><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/vendor/xterm.css"><link rel="stylesheet" href="/settings.css"><link rel="stylesheet" href="/identity.css"><script defer src="/prefs.js"></script><script defer src="/vendor/xterm.js"></script><script defer src="/vendor/addon-fit.js"></script><script defer src="/workspace.js"></script><script defer src="/live.js"></script><script defer src="/usage.js"></script><script defer src="/settings.js"></script><script defer src="/notes.js"></script><script defer src="/claudecfg.js"></script><script defer src="/git.js"></script><script defer src="/backup.js"></script><script defer src="/webhook.js"></script><script defer src="/review.js"></script><script defer src="/overview.js"></script><script defer src="/flow.js"></script></head>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>agentVIEW · Agent workspace</title><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/vendor/xterm.css"><link rel="stylesheet" href="/settings.css"><link rel="stylesheet" href="/identity.css"><script defer src="/prefs.js"></script><script defer src="/vendor/xterm.js"></script><script defer src="/vendor/addon-fit.js"></script><script defer src="/workspace.js"></script><script defer src="/live.js"></script><script defer src="/usage.js"></script><script defer src="/settings.js"></script><script defer src="/notes.js"></script><script defer src="/claudecfg.js"></script><script defer src="/git.js"></script><script defer src="/backup.js"></script><script defer src="/webhook.js"></script><script defer src="/tabs.js"></script><script defer src="/review.js"></script><script defer src="/overview.js"></script><script defer src="/flow.js"></script></head>
 <body>
 <aside class="rail" aria-label="Workspace navigation">
   <a class="brand" href="/" aria-label="agentVIEW home"><img class="brand-symbol" src="/agentview.svg" alt=""><span>agent<span class="brand-light">VIEW</span></span></a>
@@ -41,10 +41,10 @@
   <section id="overview" class="settings-panel overview-panel" hidden aria-label="All agents overview">
     <header class="page-head"><div><h2>All agents</h2><p class="muted">What can actually be observed for each registered session: process state, terminal data flow, token totals from local usage records and the latest tool name Claude Code reports. Goals are the names and projects you set. Sub-agents run inside a provider session and are not visible to this app. Network bandwidth is not measured.</p></div><span id="ov-updated" class="chip mono"></span></header>
     <div class="stat-row" id="ov-stats" aria-label="Summary">
-      <div class="stat"><span class="stat-label">Running</span><strong class="stat-value" id="st-running">0</strong><small class="stat-sub" id="st-running-sub"></small></div>
-      <div class="stat"><span class="stat-label">Needs attention</span><strong class="stat-value" id="st-attention">0</strong><small class="stat-sub">stopped unexpectedly, interrupted or quiet</small></div>
-      <div class="stat"><span class="stat-label">Terminal data flow</span><strong class="stat-value" id="st-flow">0 B/s</strong><small class="stat-sub">out, all running sessions</small></div>
-      <div class="stat"><span class="stat-label">Tokens (recorded)</span><strong class="stat-value" id="st-tokens">—</strong><small class="stat-sub">from local usage records</small></div>
+      <div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">▶</span><span class="stat-label">Running</span></span><strong class="stat-value" id="st-running">0</strong><small class="stat-sub" id="st-running-sub"></small></div>
+      <div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">!</span><span class="stat-label">Needs attention</span></span><strong class="stat-value" id="st-attention">0</strong><small class="stat-sub">stopped unexpectedly, interrupted or quiet</small></div>
+      <div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">⇅</span><span class="stat-label">Terminal data flow</span></span><strong class="stat-value" id="st-flow">0 B/s</strong><svg class="spark" id="st-flow-spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true"><polyline points="" fill="none"/></svg><small class="stat-sub">out, all running sessions</small></div>
+      <div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">◴</span><span class="stat-label">Tokens (recorded)</span></span><strong class="stat-value" id="st-tokens">—</strong><small class="stat-sub">from local usage records</small></div>
     </div>
     <div class="two-col">
       <div class="card">
@@ -53,6 +53,8 @@
         <div class="ov-scroll"><table id="ov-table"><thead><tr><th>Agent</th><th>State</th><th>Goal (name · project)</th><th>Current action</th><th>Data flow (out / in)</th><th>Tokens</th></tr></thead><tbody id="ov-body"></tbody></table></div>
       </div>
       <aside class="card">
+        <div class="card-head"><h3>By state</h3></div>
+        <div id="ov-bars" class="bars" aria-label="Sessions by state"></div>
         <div class="card-head"><h3>Needs attention</h3></div>
         <div id="ov-attention" class="ov-attention" aria-label="Needs attention"></div>
         <div class="card-head"><h3>Controls</h3></div>
@@ -60,12 +62,27 @@
         <p class="muted">Stopping ends the processes this app started. Nothing is resent when you start them again.</p>
       </aside>
     </div>
+    <div class="card" style="margin-top:18px"><div class="card-head"><h3>Time per project</h3><p class="muted">Observed while this app is open. Active means terminal output in the last 2 minutes; it is not time at the keyboard. Days are UTC.</p></div>
+      <div class="ov-scroll"><table id="ov-time"><thead><tr><th>Project</th><th>Active today</th><th>Active 7 days</th><th>Active all time</th><th>Running all time</th></tr></thead><tbody id="ov-time-body"></tbody></table></div>
+      <p id="ov-time-empty" class="muted" hidden>No time recorded yet. It builds up while sessions run.</p></div>
+
   </section>
   <section id="cc" class="settings-panel" hidden aria-label="Claude config">
     <header class="page-head"><div><h2>Claude config</h2><p class="muted" id="cc-note">Read-only view of Claude Code's global state file.</p></div><button id="cc-reload" type="button">Reload</button></header>
+    <div class="pill-tabs" id="cc-tabs" role="tablist" aria-label="Claude config sections"><button type="button" role="tab" data-cc-tab="projects" aria-selected="true">Projects &amp; MCP</button><button type="button" role="tab" data-cc-tab="settings" aria-selected="false">Settings</button><button type="button" role="tab" data-cc-tab="skills" aria-selected="false">Skills &amp; agents</button></div>
+    <div id="cc-pane-projects">
     <div class="stat-row"><div class="stat"><span class="stat-label">Projects</span><strong class="stat-value" id="cc-projects">—</strong></div><div class="stat"><span class="stat-label">Global MCP servers</span><strong class="stat-value" id="cc-global">—</strong></div><div class="stat"><span class="stat-label">Untrusted folders</span><strong class="stat-value" id="cc-untrusted">—</strong></div><div class="stat"><span class="stat-label">Missing folders</span><strong class="stat-value" id="cc-missing">—</strong></div></div>
     <div class="card"><div class="card-head"><h3>Projects</h3><input id="cc-filter" type="search" maxlength="80" placeholder="Filter folders" aria-label="Filter folders"></div><div class="ov-scroll"><table><thead><tr><th>Folder</th><th>Trusted</th><th>Allowed tools</th><th>History</th><th>MCP servers</th></tr></thead><tbody id="cc-body"></tbody></table></div></div>
-    <div class="card" style="margin-top:18px"><div class="card-head"><h3>Global MCP servers</h3></div><div id="cc-mcp"></div></div>
+    <div class="card" style="margin-top:18px"><div class="card-head"><h3>Global MCP servers</h3></div><div id="cc-mcp"></div></div></div>
+    <div id="cc-pane-settings" hidden>
+      <div class="stat-row"><div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">✓</span><span class="stat-label">Allow rules</span></span><strong class="stat-value" id="cs-allow">—</strong></div><div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">✕</span><span class="stat-label">Deny rules</span></span><strong class="stat-value" id="cs-deny">—</strong></div><div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">?</span><span class="stat-label">Ask rules</span></span><strong class="stat-value" id="cs-ask">—</strong></div><div class="stat"><span class="stat-head"><span class="stat-icon" aria-hidden="true">⚑</span><span class="stat-label">Hooks</span></span><strong class="stat-value" id="cs-hooks">—</strong></div></div>
+      <div class="card"><div class="card-head"><h3>Permissions</h3><p class="muted" id="cs-note"></p></div><p class="muted" id="cs-mode"></p><div class="ov-scroll"><table><thead><tr><th>Kind</th><th>Rule</th><th>From</th></tr></thead><tbody id="cs-rules"></tbody></table></div></div>
+      <div class="card" style="margin-top:18px"><div class="card-head"><h3>Hooks</h3></div><div class="ov-scroll"><table><thead><tr><th>Event</th><th>Matcher</th><th>Type</th><th>Program</th><th>From</th></tr></thead><tbody id="cs-hook-rows"></tbody></table></div></div>
+      <div class="card" style="margin-top:18px"><div class="card-head"><h3>Other</h3></div><p id="cs-other" class="muted"></p></div>
+    </div>
+    <div id="cc-pane-skills" hidden>
+      <div class="card"><div class="card-head"><h3>Skills, commands and agents</h3><input id="ci-filter" type="search" maxlength="80" placeholder="Filter" aria-label="Filter inventory"></div><p class="muted">Names and descriptions only, read from your Claude config folder. Nothing is run.</p><div class="ov-scroll"><table><thead><tr><th>Kind</th><th>Name</th><th>Description</th><th>Details</th></tr></thead><tbody id="ci-rows"></tbody></table></div></div>
+    </div>
   </section>
   <section id="git" class="settings-panel" hidden aria-label="Git">
     <header class="page-head"><div><h2>Git</h2><p class="muted" id="git-note">Read-only view of repositories that contain a path you have allowed. Nothing is staged, committed, fetched or pushed.</p></div><div class="inline-form"><select id="git-repo" aria-label="Repository"></select><button id="git-reload" type="button">Reload</button></div></header>
@@ -132,9 +149,13 @@
     <fieldset id="hook-box"><legend>Webhook notifications</legend><p class="muted">Sends short messages to webhooks you paste (Discord, Slack or any https address that accepts JSON). Choose per destination: a session quiet for 10 minutes ("may be waiting for you"), a session that stopped with an error, or a session that finished normally. Messages name the agent; the app cannot see approvals, so it never says one is pending. Addresses are saved privately on this computer, never shown again (only the host name) and not part of export bundles. Only https addresses on public host names; up to 5 destinations and 20 messages an hour each.</p>
       <table id="hook-table" class="hook-table"><thead><tr><th>Name</th><th>Host</th><th>Events</th><th>State</th><th></th></tr></thead><tbody id="hook-rows"></tbody></table>
       <div class="inline-form"><label>Name<input id="hook-name" maxlength="40" autocomplete="off" placeholder="Phone"></label><label class="grow">Webhook address<input id="hook-url" type="password" autocomplete="off" spellcheck="false" maxlength="500" placeholder="Paste an https:// address"></label></div>
-      <div class="inline-form" role="group" aria-label="Events"><label class="check-label"><input id="hook-ev-quiet" type="checkbox" checked> Quiet for 10 min</label><label class="check-label"><input id="hook-ev-error" type="checkbox" checked> Stopped with an error</label><label class="check-label"><input id="hook-ev-finished" type="checkbox"> Finished normally</label><label class="check-label"><input id="hook-enabled" type="checkbox" checked> On</label></div>
+      <div class="inline-form" role="group" aria-label="Events"><label class="check-label"><input id="hook-ev-quiet" type="checkbox" checked> Quiet for 10 min</label><label class="check-label"><input id="hook-ev-error" type="checkbox" checked> Stopped with an error</label><label class="check-label"><input id="hook-ev-finished" type="checkbox"> Finished normally</label><label class="check-label"><input id="hook-ev-waiting" type="checkbox" checked> Claude is waiting for you (needs the hook below)</label><label class="check-label"><input id="hook-enabled" type="checkbox" checked> On</label></div>
       <div class="inline-form"><button id="hook-save" type="button">Add destination</button><button id="hook-cancel" type="button" hidden>Cancel edit</button></div>
       <p id="hook-state" class="muted" role="status"></p></fieldset>
+    <fieldset id="hookcfg-box"><legend>Claude Code hook: "waiting for you"</legend><p class="muted">Claude Code can tell this app when it needs a permission decision or is waiting for input. Paste the hook below into <code>~/.claude/settings.json</code> yourself (the app never edits Claude's settings). It needs <code>jq</code>. The hook only appends a short line to a private file in this app's folder; the app reads it and sends a "waiting" message to destinations that chose that event. It never answers a prompt or approves anything.</p>
+      <textarea id="hookcfg-snippet" readonly rows="9" spellcheck="false" aria-label="Hook snippet"></textarea>
+      <div class="inline-form"><button id="hookcfg-copy" type="button">Copy snippet</button><button id="hookcfg-check" type="button">Check for a signal</button></div>
+      <p id="hookcfg-state" class="muted" role="status"></p></fieldset>
     <fieldset id="backup-box"><legend>Back up exports with rclone</legend><p class="muted" id="backup-note">Copies the files in this app's exports folder to a remote you already set up in rclone, into <code>agentview-backup/exports</code>. It only adds files: nothing is deleted or overwritten. The app never reads or shows your rclone settings, only the remote names.</p>
       <div class="inline-form"><label>Remote<select id="backup-remote" aria-label="rclone remote"></select></label><button id="backup-dry" type="button" disabled>Dry run</button><button id="backup-run" type="button" disabled>Copy now</button><button id="backup-run-confirm" type="button" hidden>Confirm copy</button></div>
       <p id="backup-result" class="muted" role="status"></p></fieldset>

@@ -15,6 +15,8 @@ The workspace window loads one HTML page, `ui/workspace.html`, and a set of plai
 | cc (Claude config) | `cc` | `show-cc` | `claudecfg.js` |
 | flow | `flow` | `show-flow` | `flow.js` |
 | git | `git` | `show-git` | `git.js` |
+| (Claude config tabs) Settings, Skills & agents | in `cc` | `show-cc` | `claudecfg.js` |
+| (Settings tabs) General, Data, Notifications, About | in `settings` | `show-settings` | `tabs.js` (shows or hides blocks only) |
 | (Settings card) webhook | in `settings` | `show-settings` | `webhook.js` |
 | (Settings card) backup | in `settings` | `show-settings` | `backup.js` |
 | review (Pre-PR review) | `review` | `show-review` | `review.js` |

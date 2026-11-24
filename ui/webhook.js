@@ -2,7 +2,7 @@
 (() => {
   const $=id=>document.getElementById(id);
   const invoke=(c,a={})=>AppIPC.invoke(c,a);
-  const EV={quiet:'Quiet',error:'Error',finished:'Finished'};
+  const EV={quiet:'Quiet',error:'Error',finished:'Finished',waiting:'Waiting'};
   let editing=null,removing=null,lastText='';
   function button(text,fn){const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=fn;return b;}
   function form(){
@@ -33,4 +33,15 @@
   };
   $('hook-cancel').onclick=resetForm;
   $('show-settings').addEventListener('click',()=>{resetForm();removing=null;load();});
+})();
+(() => {
+  const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
+  async function check(){
+    let s;try{s=await invoke('claude_hook_status');}catch(e){$('hookcfg-state').textContent=String(e);return;}
+    $('hookcfg-snippet').value=s.snippet;
+    $('hookcfg-state').textContent=s.last_at?`Last signal: ${new Date(s.last_at*1000).toLocaleString()} (${s.last_kind||'unknown'}). The hook works.`:'No signal received yet. After adding the hook, the next time Claude asks for permission (or waits) a line appears here.';
+  }
+  $('hookcfg-check').onclick=check;
+  $('hookcfg-copy').onclick=()=>{const t=$('hookcfg-snippet');t.focus();t.select();try{document.execCommand('copy');$('hookcfg-state').textContent='Copied. Paste it into your Claude settings.';}catch{$('hookcfg-state').textContent='Select the text and copy it.';}};
+  $('show-settings').addEventListener('click',check);
 })();

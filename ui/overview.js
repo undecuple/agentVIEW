@@ -24,6 +24,27 @@
     if(a.running&&a.idle_ms!=null&&a.idle_ms>IDLE_ATTENTION_MS)return `no output for ${Math.round(a.idle_ms/60000)} min`;
     return '';
   }
+  let ticks=0;
+  const samples=[];
+  function spark(v){samples.push(v);if(samples.length>40)samples.shift();const max=Math.max(1,...samples),n=samples.length;
+    $('st-flow-spark').firstElementChild.setAttribute('points',samples.map((s,i)=>`${n<2?0:(i*100/(n-1)).toFixed(1)},${(22-(s/max)*20).toFixed(1)}`).join(' '));}
+  function bars(rows){
+    const counts={running:0,quiet:0,error:0,stopped:0};
+    for(const a of rows){if(!a.running){counts[a.status==='exited'&&a.exit_info&&a.exit_info!=='exit 0'||a.status==='interrupted'?'error':'stopped']++;}else if(a.idle_ms!=null&&a.idle_ms>IDLE_ATTENTION_MS)counts.quiet++;else counts.running++;}
+    const box=$('ov-bars');box.replaceChildren();const max=Math.max(1,...Object.values(counts));
+    for(const [k,label] of [['running','Running'],['quiet','Quiet 10+ min'],['error','Stopped with an error'],['stopped','Not running']]){
+      const r=document.createElement('div');r.className='bar-row';r.dataset.kind=k;
+      const l=document.createElement('span');l.textContent=label;const t=document.createElement('span');t.className='bar-track';const f=document.createElement('span');f.className='bar-fill';f.style.width=(counts[k]*100/max)+'%';t.append(f);
+      const n=document.createElement('strong');n.textContent=String(counts[k]);r.append(l,t,n);box.append(r);
+    }
+  }
+  const dur=ms=>{const m=Math.round(ms/60000);return m<1?(ms>0?'<1 min':'0'):m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`;};
+  async function timeCard(){
+    let rows;try{rows=await invoke('time_report');}catch{return;}
+    const body=$('ov-time-body');body.replaceChildren();$('ov-time-empty').hidden=rows.length>0;$('ov-time').hidden=!rows.length;
+    for(const r of rows){const tr=document.createElement('tr');tr.title=r.project;
+      for(const v of [r.project.split('/').filter(Boolean).slice(-2).join('/')||r.project,dur(r.today_active_ms),dur(r.week_active_ms),dur(r.all_active_ms),dur(r.all_running_ms)]){const td=document.createElement('td');td.textContent=v;tr.append(td);}body.append(tr);}
+  }
   function render(){
     const prov=$('ov-provider').value,state=$('ov-state').value,text=$('ov-text').value.trim().toLowerCase(),sort=$('ov-sort').value;
     let list=rows.filter(a=>(!prov||a.provider===prov)&&(!state||(state==='attention'?!!attention(a):(state==='running')===a.running))&&(!text||(a.display_name+' '+a.project).toLowerCase().includes(text)));
@@ -49,7 +70,7 @@
      let tk=0,any=false;for(const a of rows){const v=tokens.get(a.id);if(v!=null){tk+=v;any=true;}}
      $('st-running').textContent=String(runningRows.length);$('st-running-sub').textContent=`of ${rows.length} registered`;
      $('st-attention').textContent=String(need.length);$('st-attention').dataset.bad=String(need.length>0);
-     $('st-flow').textContent=`${fmtB(out)}/s`;$('st-tokens').textContent=any?fmtN(tk):'—';}
+     $('st-flow').textContent=`${fmtB(out)}/s`;spark(out);bars(rows);$('st-tokens').textContent=any?fmtN(tk):'—';}
     const running=rows.filter(a=>a.running).length;
     $('ov-stopall').disabled=!running;$('ov-stopall').textContent=running?`Stop all running (${running})`:'Stop all running';
     $('ov-summary').textContent=rows.length?`${list.length} shown of ${rows.length} registered · ${running} running`:'No sessions are registered yet. Add one on the Sessions page.';
@@ -66,7 +87,7 @@
   const resetStop=()=>{$('ov-stopall').hidden=false;$('ov-stopall-confirm').hidden=true;$('ov-stopall-cancel').hidden=true;};
   $('ov-stopall-cancel').onclick=resetStop;
   $('ov-stopall-confirm').onclick=async()=>{resetStop();try{const n=await invoke('live_stop_all');$('ov-summary').textContent=`Stopped ${n} running session${n===1?'':'s'}.`;}catch(e){$('ov-summary').textContent=String(e);}await poll();};
-  function start(){clearInterval(timer);poll();timer=setInterval(poll,2000);}
+  function start(){clearInterval(timer);poll();timeCard();timer=setInterval(()=>{poll();if(++ticks%10===0)timeCard();},2000);}
   function stop(){clearInterval(timer);timer=null;}
   for(const id of ['ov-provider','ov-state','ov-text','ov-sort'])$(id).addEventListener('input',render);
   window.addEventListener('agentview:navigate',e=>{if(e.detail==='overview')start();else stop();});

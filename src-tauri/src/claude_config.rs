@@ -21,7 +21,7 @@ fn file() -> Option<PathBuf> {
     std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".claude.json"))
 }
 /// Command name only: the first word, then its file name. Inline arguments or KEY=value text never show.
-fn base(s: &str) -> String {
+pub(crate) fn base(s: &str) -> String {
     let first = s.split_whitespace().next().unwrap_or("");
     if first.contains('=') { return String::new(); } // a KEY=value word is never shown
     first.rsplit('/').next().unwrap_or("").chars().take(60).collect()

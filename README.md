@@ -47,6 +47,8 @@ Tested locally on Linux with WebKitGTK and a private X display:
 | Git | Read-only status of repositories that contain an allowed path: branch, ahead/behind, changed files, recent commits, identity check; fixed `git` commands, no writes |
 | Webhooks | Up to five private https destinations, each choosing which events to send ("may be waiting for you" after 10 quiet minutes, stopped with an error, finished); the address is never shown again |
 | Backup | Copies the app's exports folder to an rclone remote you already set up, dry run first, add-only |
+| Claude hook | Optional: paste one hook into your own Claude settings so the app can tell you exactly when Claude is waiting for a permission decision; the app only reads the signal file and never approves anything |
+| Claude settings | Read-only tabs on the Claude config page: permission rules, hooks, env names (no values), skills, commands and agents |
 | Notes | Markdown library on shelves in the app's own storage: editor, live preview, save history, search; never touches your repositories |
 | Claude config | Read-only, redacted view of Claude Code's state file (folders, trust flags, MCP server names); never shows secrets and never writes |
 | Pre-PR review | Queue of allow-listed drafts with a checklist and a PASS (manual review) label tied to the file's hash; your own note, not an approval |

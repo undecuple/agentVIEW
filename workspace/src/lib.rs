@@ -7,6 +7,7 @@ use std::path::Path;
 use std::time::Duration;
 pub mod notes;
 pub mod webhook;
+pub mod timelog;
 pub mod reviews;
 pub mod settings;
 pub use settings::{AppSettings,QuickPrompt,SettingsRecovery,SettingsSnapshot};
@@ -139,6 +140,7 @@ impl Store {
         reviews::initialize(&tx)?;
         notes::initialize(&tx)?;
         webhook::initialize(&tx)?;
+        timelog::initialize(&tx)?;
         db(tx.commit())?;
         let store = Self { connection };
         validate_hierarchy(&store.agents()?)?;
@@ -222,6 +224,7 @@ pub fn asset(path: &str) -> Option<(&'static str, &'static str)> {
         "/settings.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/settings.css"))),
         "/overview.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/overview.js"))),
         "/flow.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/flow.js"))),
+        "/tabs.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/tabs.js"))),
         "/webhook.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/webhook.js"))),
         "/backup.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/backup.js"))),
         "/git.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/git.js"))),

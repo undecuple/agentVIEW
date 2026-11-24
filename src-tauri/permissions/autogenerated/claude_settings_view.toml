@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-settings-view"
+description = "Enables the claude_settings_view command without any pre-configured scope."
+commands.allow = ["claude_settings_view"]
+
+[[permission]]
+identifier = "deny-claude-settings-view"
+description = "Denies the claude_settings_view command without any pre-configured scope."
+commands.deny = ["claude_settings_view"]

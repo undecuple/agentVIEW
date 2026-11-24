@@ -53,7 +53,7 @@ fn git(repo: &Path, args: &[&str]) -> Option<Vec<u8>> {
     status.success().then_some(buf)
 }
 
-fn denied_name(path: &str, cfg: &Config) -> bool {
+pub(crate) fn denied_name(path: &str, cfg: &Config) -> bool {
     path.split('/').any(|part| !part.is_empty() && cfg.deny.iter().any(|d| policy::glob_match(d, part)))
 }
 
