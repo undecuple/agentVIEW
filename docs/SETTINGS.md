@@ -1,13 +1,12 @@
 # App preferences and colour themes
 
-Status: implementation candidate; integration checks pending. Reuses
+Status: implemented and covered by GUI tests. Reuses
 [Claude architecture checkpoints](DESIGN-tauri.md), [session boundaries](SHARED-SESSIONS.md)
-and [usage source contracts](USAGE.md). The previous preview had fixed interface
-and terminal values and no app Settings page.
+and [usage source contracts](USAGE.md).
 
 ## Scope and persistence
 
-Settings cover app appearance, startup page/preferred provider, remembered
+Settings cover app appearance, the opt-in simulated demo workspace, an export/import bundle of preferences and notes, startup page/preferred provider, remembered
 hierarchy/session filters, terminal font/blink/bounded in-memory scrollback,
 usage defaults/optional visible-page refresh, and editable/reorderable quick
 presets. Defaults never start, resume, authenticate or configure a provider.
@@ -32,10 +31,10 @@ Preset text is saved locally and excluded from diagnostics.
 
 ## Palette and artwork
 
-Both themes adapt the official dark and light palettes in
-[Cyberdream](https://github.com/scottmckendry/cyberdream.nvim/blob/eafadf5712e447bb813f8f7eab8012d1391fdba2/lua/cyberdream/colors.lua).
-Primary accent is cyan #66d9ef with pink text on charcoal #1b1d1e in Dark (identity.css) and blue #0057d1 in Light, with matching cyan/green/
-purple/status colors. Muted text and surface shades are adjusted for application
+There are four palettes plus System. Light adapts the official light palette of
+[Cyberdream](https://github.com/scottmckendry/cyberdream.nvim/blob/eafadf5712e447bb813f8f7eab8012d1391fdba2/lua/cyberdream/colors.lua)
+with a blue #0057d1 accent. Dark (the default) is Molokai-inspired: soft pink text #f08cb0 on charcoal #1b1d1e with a cyan #66d9ef accent
+(`ui/identity.css`). PaperColor Light and Dark are additional choices. Each has matching status colors. Muted text and surface shades are adjusted for application
 readability. System mode follows the OS color-scheme preference. The established
 layout and original lettering/icon geometry are retained.
 
@@ -62,5 +61,5 @@ preference application, stale drafts, quick-paste safety, light/dark rendering,
 visible-only scheduling, diagnostic privacy and Documents isolation. Narrow/Niri
 captures and exact-head AppImage/source packages follow final review.
 
-## Themes (2026-11-24)
+## Themes
 Dark is now a Molokai-inspired palette with soft pink text (`#f08cb0` on `#1b1d1e`); Light stays Cyberdream Light. PaperColor Light and PaperColor Dark are additional choices, inspired by the vim colour scheme PaperColor (MIT). Only colour values are used as inspiration; no code or assets were copied from these schemes. The setting values are `dark`, `light`, `system`, `papercolor-light` and `papercolor-dark`.

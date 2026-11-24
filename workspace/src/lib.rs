@@ -219,6 +219,8 @@ pub fn asset(path: &str) -> Option<(&'static str, &'static str)> {
         "/settings.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/settings.js"))),
         "/settings.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/settings.css"))),
         "/overview.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/overview.js"))),
+        "/backup.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/backup.js"))),
+        "/git.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/git.js"))),
         "/claudecfg.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/claudecfg.js"))),
         "/notes.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/notes.js"))),
         "/review.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/review.js"))),

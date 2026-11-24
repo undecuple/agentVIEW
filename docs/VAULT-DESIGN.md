@@ -1,6 +1,6 @@
 # Credentials and access
 
-Status: requested product design, not implemented. The simulated preview has no
+Status: requested product design, not implemented. The app has no
 credential vault, access broker or live provider authentication. This document
 does not import keys, inspect existing secrets or grant agents access.
 

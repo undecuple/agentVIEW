@@ -21,9 +21,9 @@ Intake agents, project coordinators and subagents, with durable conversations an
 </p>
 
 agentVIEW is a Tauri 2 desktop app with a Rust core. It separates the agent workspace from a restricted document viewer.
-The preview includes **simulated hierarchy/chat records** and a separate **Sessions** desk for explicitly launched Claude Code and Codex terminals. Authenticated native-TUI conversation recovery is awaiting live verification; see [session status and limits](docs/SHARED-SESSIONS.md). The Cyberdream dark/light design has [hierarchy](docs/agentview-preview.png), [Sessions](docs/agentview-live-preview.png) and [usage](docs/agentview-usage-preview.png) previews. [Dark Settings](docs/agentview-settings-dark-preview.png) · [Light Settings](docs/agentview-settings-light-preview.png).
+**Sessions** open by default: your own Claude Code and Codex terminals, started explicitly. A simulated hierarchy and chat demo is available as an opt-in (Settings, "Show the simulated demo workspace"). Authenticated native-TUI conversation recovery is awaiting live verification; see [session status and limits](docs/SHARED-SESSIONS.md). The dark theme is Molokai-inspired with soft pink text and the light theme is Cyberdream Light; the screenshots below may show earlier looks. Previews: [hierarchy](docs/agentview-preview.png), [Sessions](docs/agentview-live-preview.png) and [usage](docs/agentview-usage-preview.png) previews..
 
-The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/Dark and System appearance, scale/density, startup defaults, terminal preferences, visible-page usage refresh and coordinator prompt presets. Preferences stay local; provider login/models/permissions remain native. See [settings and recovery](docs/SETTINGS.md).
+The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/Dark and System appearance, scale/density, startup defaults, the simulated-demo switch, terminal preferences, visible-page usage refresh, coordinator prompt presets, and an export/import bundle of preferences and notes. Preferences stay local; provider login/models/permissions remain native. See [settings and recovery](docs/SETTINGS.md).
 
 ## Quickstart
 
@@ -38,22 +38,27 @@ The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/
 
 ## Status
 
-As of **2026-11-22**, tested locally on Linux with WebKitGTK and a private X display:
+Tested locally on Linux with WebKitGTK and a private X display:
 
 | Area | Current state |
 | --- | --- |
-| Hierarchy | Separate Claude and Codex intake trees, project coordinators and subagents |
+| Overview | All registered sessions: state, terminal data flow, token totals from local records, latest Claude tool name, an attention queue and stop-all. Sub-agents and network bandwidth are not observable and are not shown |
+| Notes | Markdown library on shelves in the app's own storage: editor, live preview, save history, search; never touches your repositories |
+| Claude config | Read-only, redacted view of Claude Code's state file (folders, trust flags, MCP server names); never shows secrets and never writes |
+| Pre-PR review | Queue of allow-listed drafts with a checklist and a PASS (manual review) label tied to the file's hash; your own note, not an approval |
+| Bundles | Export and import preferences and notes through the app's private exports folder |
+| Hierarchy (demo) | Opt-in simulated Claude and Codex intake trees, project coordinators and subagents |
 | Project view | Coordinators and their subagents grouped by project, with provider filters |
-| Simulated conversations | SQLite persistence, ordered delivery, retry protection and restart recovery |
+| Simulated conversations (demo, opt-in) | SQLite persistence, ordered delivery, retry protection and restart recovery |
 | Busy and paused demo agents | Messages remain queued until the recipient resumes |
 | Documents | Allow-listed text, diffs, gate logs and raster images in a separate read-only window |
-| Usage | Provider and agent views; input, output, cached input and total counts explicitly unavailable |
+| Usage | Numeric counters read from local provider session records. Claude input and cache counts and Codex counts are measured; Claude output and total are unavailable. Missing values stay unavailable, never zero |
 | Live sessions | Two app-owned Claude/Codex PTYs, separate provider IDs, explicit exact-ID resume and native login/approval UI; authenticated terminal recovery deferred |
 | Coordinator prompts | Inbox/status/handoff presets and custom text paste into the selected terminal without Enter |
 | Source and AppImage | Local source archives and unsigned Linux AppImage previews; no GitHub Release yet |
 | CI | Locked Rust library tests, desktop compilation, Python tests and repository checks |
 
-GUI checks exercised hierarchy filters, conversations, restart and the document-window command boundary.
+GUI checks exercise the Sessions, Overview, Notes, Claude config, review and Settings pages, restart, layout at several scales and the document-window command boundary. `check-foundation.sh` runs the foundation set; run `scripts/test-notes.sh`, `test-review.sh`, `test-claude-config.sh` and `test-overlap.sh` when you change those pages. The Python tests run with `python3 -I -m unittest discover -s tests`. See the [code map](docs/code-map/README.md) for which command fits which change.
 AppImage smoke checks passed in Ubuntu 22.04 containers, with a negative control that rejects a process which exits immediately.
 Native Wayland rendering, tiling and scaling were checked under isolated Niri. Live synthetic terminals also exercise 100/125/150/200% scaling and 640-pixel layouts; see [test scope and limits](docs/NIRI.md).
 FUSE, other distributions and physical desktop interaction remain unvalidated.
@@ -189,14 +194,17 @@ Keep fixtures synthetic and changes scoped; include the checks you actually ran.
 
 ```text
 core/        Read-only document policy and routing
-workspace/   Simulated hierarchy, conversations and SQLite persistence
+workspace/   SQLite store (settings, notes, review labels, demo roster) and workspace assets
 sessions/    Provider-aware PTYs and durable native launch identities
 ui/          Workspace interface and original icon
 src-tauri/   Desktop shell and command boundary
 viewer/      Python document viewer
 scripts/     Checks, packaging and deterministic art generators
 assets/      README banner, hierarchy divider and social preview
-docs/        Design, validation, screenshot and wishlist
+docs/        Design, validation, screenshots and the code map (docs/code-map)
+tests/       Python tests and the JavaScript GUI tests
+packaging/   AppImage launchers and container files
+.github/     CI and release workflows
 licenses/    Third-party licence texts
 ```
 

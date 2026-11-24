@@ -41,6 +41,6 @@ is created just by adding or merging this workflow.
 
 AppImages are unsigned and need host WebKitGTK 4.1, GTK 3 and glibc 2.34 or newer.
 Smoke tests use extract-and-run; FUSE and Wayland remain unverified. The preview
-still uses simulated agents. Dependency audit/deny remain separate unfinished
+simulated agents are opt-in. Dependency audit/deny remain separate unfinished
 checks. `scripts/release.py` has adversarial tests for tag validation, main
 ancestry, manual-run refusal, checksum/provenance tampering and release reuse.

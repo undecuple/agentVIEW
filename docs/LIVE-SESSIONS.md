@@ -1,3 +1,5 @@
+> Evidence figures here are snapshots (current command count: 40). Added since: Remote Control toggle and session names for Claude sessions, stop-all, kept exit status with an interrupted/ended banner, base64 terminal reads, hidden-window-aware polling, and a separate usage connection. See the [code map](code-map/README.md).
+
 # Live Claude session milestone
 
 **Current follow-up:** [shared Claude/Codex sessions](SHARED-SESSIONS.md) supersedes

@@ -1,6 +1,6 @@
 # Sandbox and activity management proposal
 
-Status: requested design/backlog, not implemented in the simulated foundation.
+Status: requested design/backlog, not implemented.
 The release-workflow work does not change Bubblewrap profiles or host permissions.
 Live session adapters are a prerequisite for reliable runtime observations.
 

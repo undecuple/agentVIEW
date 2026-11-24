@@ -24,5 +24,4 @@ test command was run, overlap with open PRs, plain and true wording, and the app
 
 Optional `<repo>/.pr-check.toml`: `identity_regex`, `forbidden_words`, `ai_line`, `max_changed_lines`.
 
-Planned: a read-only "Pre-PR check" view in the app that runs this fixed script against an allow-listed repository and shows
-the report. The app would not run anything else, and approval stays with a person.
+In the app: the Pre-PR review page is a queue of allow-listed drafts with a checklist and a PASS (manual review) label tied to the file's hash. It does not run this script. Planned: a read-only view that runs this fixed script against an allow-listed repository and shows the report. The app would not run anything else, and approval stays with a person.

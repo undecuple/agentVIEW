@@ -2,10 +2,9 @@
 
 The README follows the shared project README template, adapted to a Linux agent
 workspace rather than a game port. Its banner and dividers use agentVIEW's own
-hierarchy motif with Cyberdream dark/light colors. The official palette source
+hierarchy motif. The dark artwork uses the Molokai-inspired palette (soft pink #f08cb0, cyan #66d9ef on #1b1d1e); the light artwork uses Cyberdream Light. The README banner animates: VIEW opens into a pixel eye that blinks and returns to normal. The official palette source
 is pinned at eafadf5712e447bb813f8f7eab8012d1391fdba2; attribution is in
-assets/cyberdream-LICENSE.txt. Blue/cyan accents replace the preceding pink/mint
-branding while the approved lettering and icon geometry stay the same.
+assets/cyberdream-LICENSE.txt. Earlier branding variants were replaced while the approved lettering and icon geometry stay the same.
 
 The deterministic construction adapts the double rules, checker dither and
 rectangular frames in [undecuple/me](https://github.com/undecuple/me). That source

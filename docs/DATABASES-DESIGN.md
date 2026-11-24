@@ -21,7 +21,7 @@ describes its in-process concurrency and analytical workload model; keep the app
 initial analytical deployment local rather than adding a server by default.
 
 Live SQLite files need a supported consistent snapshot/backup process, including
-WAL state; copying only the main database file is not an acceptable backup scheme.
+WAL state; copying only the main database file is not an acceptable backup scheme. (Today the app's own databases use SQLite's default journal mode, not WAL; this applies if that changes or to any database that uses WAL.)
 The remote Web UI should call the PC service, not open either database file over
 NetBird. No listener is enabled by this design.
 

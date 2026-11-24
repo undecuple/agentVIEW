@@ -1,3 +1,5 @@
+> Evidence figures and design notes below are snapshots from when each step was made. Current command count is 40, and the look has changed since; see the [code map](code-map/README.md).
+
 # Shared Claude Code and Codex sessions
 
 Status: implemented candidate; authenticated native-TUI turns and conversation

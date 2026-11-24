@@ -1,6 +1,6 @@
 # Local token measurements
 
-Status: implemented candidate on the charcoal/pink workspace; authenticated
+Status: implemented (the page is Token usage in the sidebar; the look has since changed to the current themes); authenticated
 provider counter verification remains deferred. Source map:
 [Claude architecture checkpoints](DESIGN-tauri.md), [session lifecycle](SHARED-SESSIONS.md),
 and [observability plan](INTEGRATIONS.md). The preceding preview deliberately
@@ -87,7 +87,7 @@ provider turns. Authenticated native-TUI recovery remains a separate deferred ga
 
 ## Candidate evidence
 
-- Pinned foundation runner passed 74 Python tests, 23 core Rust tests, 28 session
+- Evidence snapshot at the time (current counts are in code-map/BUILD-TEST.md): pinned foundation runner passed 74 Python tests, 23 core Rust tests, 28 session
   tests and 8 workspace tests, viewer policy, Documents isolation from all 15
   commands, native-close cancellation, hierarchy/usage persistence and mixed
   provider session GUI checks at normal and 640-pixel widths.

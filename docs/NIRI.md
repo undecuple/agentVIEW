@@ -1,3 +1,5 @@
+> Test counts here are a snapshot. A local standalone NixOS build now exists (see STANDALONE-NIXOS.md); it is not verified on a real GPU.
+
 # Niri compatibility checks
 
 The workspace uses normal Wayland windows and makes no assumptions about window

@@ -29,7 +29,7 @@ pub struct BundleSummary { name: String, app_version: String, pages: usize, shel
 #[derive(Serialize)]
 pub struct ImportResult { pages_added: usize, pages_renamed: usize, settings_applied: bool }
 
-fn dir() -> Result<PathBuf, String> {
+pub(crate) fn dir() -> Result<PathBuf, String> {
     let base = super::app_data_dir()?;
     if std::fs::canonicalize(&base).map_err(|_| "Data directory unavailable")? != base { return Err("Bundle storage cannot use symlinks".into()); }
     let d = base.join("exports");

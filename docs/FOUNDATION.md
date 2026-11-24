@@ -1,5 +1,7 @@
 # Foundation milestone
 
+> Historical record of the first milestone. Live sessions, usage, settings, Overview, Notes, Claude config and the review queue were added later; test counts and statements such as "no live providers" describe that milestone only. For the current structure see [the code map](code-map/README.md).
+
 Product name: **agentVIEW** (user-selected). Visual direction takes inspiration
 from [Appwrite](https://appwrite.io/): dark surfaces, restrained pink accents,
 compact navigation and clear panel boundaries. No third-party UI code or assets
