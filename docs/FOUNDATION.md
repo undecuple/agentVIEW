@@ -124,7 +124,7 @@ multi-machine test is claimed. Usage counters remain explicitly unavailable.
 ## Authorized packaging and branch push
 
 The user subsequently authorized GitHub updates and requested a tarball and
-AppImage. The existing private repository is `undecuple/agent-app`; the checkout
+AppImage. The project repository then existed privately under an earlier name; the checkout
 had no remote. Published main `e47b6d2` has different ancestry but the same tree
 as local baseline `7e51a47` (`8f4758bceb31d9b97e2fd064ceb0b8e735cdae75`).
 Preserve the local history and create a separate publication commit with the
