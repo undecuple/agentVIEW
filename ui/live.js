@@ -12,8 +12,9 @@
     const roster=$('live-roster');roster.replaceChildren();
     for(const s of sessions.filter(s=>!$('live-filter').value||s.provider===$('live-filter').value)){
       const button=document.createElement('button');button.type='button';button.className='live-session';button.dataset.session=s.id;button.setAttribute('aria-pressed',String(selected===s.id));
-      const name=document.createElement('strong');name.textContent=s.display_name||s.label;
-      const state=document.createElement('small');state.textContent=`${providerName(s.provider)} · Coordinator · ${s.status}`;
+      const dot=document.createElement('span');dot.className='dot '+String(s.status).replace(/[^a-z-]/g,'');dot.setAttribute('aria-hidden','true');
+      const name=document.createElement('strong');name.append(dot,document.createTextNode(s.display_name||s.label));
+      const state=document.createElement('small');const chip=document.createElement('span');chip.className='chip';chip.textContent=providerName(s.provider);state.append(chip,document.createTextNode(` ${s.status}`));
       button.append(name,state);button.onclick=()=>select(s.id);roster.append(button);
     }
     const s=current();
@@ -22,6 +23,7 @@
     $('live-identity').textContent=s?`${s.project_dir} · App ${s.id} · Provider ${s.provider_session_id||'not established'} · ${s.version} · ${s.executable}`:'Session IDs and launch recipes are saved. Terminal content is kept in memory only.';
     $('live-start').textContent=s&&!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first`:s&&(s.attempted||s.bootstrap_attempted)&&!s.provider_session_id?'Identity needs review':s&&s.attempted?'Resume saved ID':'Start new session';
     $('live-start').disabled=busy||!s||active(s)||!tools.has(s.provider)||((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id);$('live-stop').disabled=busy||!active(s);
+    $('live-hint').textContent=!s?'Select or register a project to start a session.':active(s)?'Running. Use Stop process to end it.':!tools.has(s.provider)?`Press "Inspect ${providerName(s.provider)} CLI" in Provider & project setup first.`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'This session needs its saved identity reviewed before it can resume.':'';
     $('live-state').textContent=s?s.status:'Not started';$('live-state').dataset.state=s?s.status:'';
     {const b=$('live-banner');let m='';
       if(s&&s.status==='exited')m=`This session ended${s.exit_info?' ('+s.exit_info+')':''}${s.exit_at?' at '+new Date(s.exit_at).toLocaleTimeString():''}. Nothing was resent. Start it to resume the saved conversation.`;

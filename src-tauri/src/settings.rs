@@ -24,7 +24,7 @@ pub fn app_settings_apply(window:tauri::WebviewWindow,state:tauri::State<'_,supe
 }
 
 #[derive(Serialize)]
-pub struct About { app_version:&'static str, platform:&'static str, data_directory:String, allowlist_file:String, saved_cli_versions:Vec<(String,String)>, report:Value }
+pub struct About { app_version:&'static str, build:&'static str, platform:&'static str, data_directory:String, allowlist_file:String, saved_cli_versions:Vec<(String,String)>, report:Value }
 
 // Only conventional three-part numeric versions enter diagnostics. Arbitrary
 // wrapper --version text may be displayed by Sessions, but is never exported.
@@ -45,7 +45,7 @@ async fn about(window:tauri::WebviewWindow,state:&super::WorkspaceState,live:&su
         "appearance":{"theme":s.theme,"scale_percent":s.ui_scale_percent,"density":s.density},
         "terminal":{"font_size":s.terminal_font_size,"scrollback_lines":s.terminal_scrollback,"cursor_blink":s.terminal_cursor_blink},
         "usage_refresh_seconds":s.usage_refresh_seconds,"saved_cli_versions":saved_cli_versions});
-    Ok(About{app_version:env!("CARGO_PKG_VERSION"),platform:"Linux",data_directory:super::app_data_dir()?.to_string_lossy().into_owned(),
+    Ok(About{app_version:env!("CARGO_PKG_VERSION"),build:env!("AGENT_APP_GIT"),platform:"Linux",data_directory:super::app_data_dir()?.to_string_lossy().into_owned(),
         allowlist_file:super::config_path().to_string_lossy().into_owned(),saved_cli_versions,report})
 }
 #[tauri::command]

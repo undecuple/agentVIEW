@@ -25,3 +25,6 @@ workspace-e2e = ["e2e"]
 
 [dev-dependencies]
 tempfile = "3"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"

@@ -15,6 +15,7 @@ dependencies = [
  "agent-app-core",
  "agent-app-sessions",
  "agent-app-workspace",
+ "gtk",
  "libc",
  "serde",
  "serde_json",

@@ -68,13 +68,28 @@
 })();
 
 ;(()=>{ // Sidebar collapse: a per-viewer convenience kept in localStorage (may be unavailable; the page works without it)
-  const key='agentview.rail';let on=false;
-  try{on=localStorage.getItem(key)==='collapsed';}catch{}
-  function apply(){
+  const key='agentview.rail';let pref=null;const narrow=matchMedia('(max-width:1000px)');
+  try{const v=localStorage.getItem(key);pref=v==='collapsed'||v==='expanded'?v:null;}catch{}
+  // A saved choice wins; with none, the sidebar folds to icons in a narrow window.
+  const isOn=()=>pref?pref==='collapsed':narrow.matches;
+  function apply(){const on=isOn();
     document.body.dataset.rail=on?'collapsed':'';
     const b=document.getElementById('rail-toggle');if(!b)return;
     b.textContent=on?'»':'«';b.setAttribute('aria-pressed',String(on));
     const l=on?'Expand sidebar':'Collapse sidebar';b.setAttribute('aria-label',l);b.title=l;
   }
-  window.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('rail-toggle').onclick=()=>{on=!on;try{localStorage.setItem(key,on?'collapsed':'expanded');}catch{}apply();};});
+  window.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('rail-toggle').onclick=()=>{pref=isOn()?'expanded':'collapsed';try{localStorage.setItem(key,pref);}catch{}apply();};narrow.addEventListener('change',apply);});
+})();
+
+;(()=>{ // Keyboard: Alt+1..9 opens the nth sidebar page; Esc closes the open section or leaves the field. Not inside a terminal.
+  document.addEventListener('keydown',e=>{
+    if(e.target.closest&&e.target.closest('.xterm,#live-terminal'))return;
+    if(e.altKey&&!e.ctrlKey&&!e.metaKey&&/^[1-9]$/.test(e.key)){
+      const items=[...document.querySelectorAll('.rail .nav-item')].filter(b=>b.tagName==='BUTTON'&&!b.hidden&&b.offsetParent!==null);
+      const b=items[Number(e.key)-1];if(b){e.preventDefault();b.click();}
+    }else if(e.key==='Escape'&&!e.altKey&&!e.ctrlKey&&!e.metaKey){
+      const d=e.target.closest?.('details[open]');
+      if(d&&d.id!=='live-setup-never'){d.open=false;d.querySelector('summary')?.focus();}else if(e.target.blur&&e.target!==document.body)e.target.blur();
+    }
+  });
 })();

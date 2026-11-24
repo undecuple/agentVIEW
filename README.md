@@ -27,6 +27,8 @@ The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/
 
 ## Quickstart
 
+Full instructions, including a NixOS section, are in the [install guide](docs/INSTALL.md).
+
 1. **Get the source.** Clone this repository, then enter its directory.
 2. **Enter the pinned environment.** Run `nix develop`; the committed flake lock selects the toolchain and libraries.
 3. **Start the app.** Run `CARGO_HOME="$PWD/.cargo-home" cargo run --locked -p agent-app`.

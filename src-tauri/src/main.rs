@@ -118,6 +118,15 @@ fn config_path() -> PathBuf {
     base.join("agent-app").join("allowlist.toml")
 }
 
+/// On some Wayland sessions GTK reports no screen resolution (-1). WebKit divides by it, so page widths and the pixel ratio
+/// turn negative and the layout collapses. Use the standard 96 DPI only when the session gives none; a real value is kept.
+#[cfg(target_os = "linux")]
+fn fix_unset_screen_dpi() {
+    if let Some(screen) = gtk::gdk::Screen::default() { if screen.resolution() <= 0.0 { screen.set_resolution(96.0); } }
+}
+#[cfg(not(target_os = "linux"))]
+fn fix_unset_screen_dpi() {}
+
 fn workspace_width() -> f64 {
     #[cfg(feature="workspace-e2e")]
     if let Some(width) = std::env::var("AGENT_APP_TEST_WIDTH").ok().and_then(|s| s.parse::<u32>().ok()).filter(|w| (480..=1920).contains(w)) {
@@ -196,6 +205,7 @@ fn main() {
             })
         })
         .setup(|app| {
+            fix_unset_screen_dpi();
             #[cfg(all(feature="e2e",not(feature="workspace-e2e")))]
             build_viewer(app.handle(), "viewer://localhost/__e2e")?;
             #[cfg(any(not(feature="e2e"),feature="workspace-e2e"))]

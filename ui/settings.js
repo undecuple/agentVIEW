@@ -63,7 +63,7 @@
   async function loadAbout(){
     if(aboutBusy)return;aboutBusy=true;
     try{const about=await invoke('app_about');$('settings-about').replaceChildren();
-      for(const [key,value]of [['App',`agentVIEW ${about.app_version}`],['Platform',about.platform],['Local storage',about.data_directory],['Document allowlist',about.allowlist_file],['Saved CLI versions',about.saved_cli_versions.map(([p,v])=>`${p}: ${v}`).join(' · ')||'Unavailable — register an inspected CLI under Sessions']])$('settings-about').append(node('dt','',key),node('dd','',value));
+      for(const [key,value]of [['App',`agentVIEW ${about.app_version}`],['Build',about.build],['Platform',about.platform],['Local storage',about.data_directory],['Document allowlist',about.allowlist_file],['Saved CLI versions',about.saved_cli_versions.map(([p,v])=>`${p}: ${v}`).join(' · ')||'Unavailable — register an inspected CLI under Sessions']])$('settings-about').append(node('dt','',key),node('dd','',value));
       $('settings-report').textContent=JSON.stringify(about.report,null,2);
     }catch(e){$('settings-export-status').textContent=`Diagnostics unavailable: ${String(e)}`;}finally{aboutBusy=false;}
   }

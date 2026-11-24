@@ -125,7 +125,7 @@ class Art:
                 name = starts[index]
                 values = ";".join("1" if step == name else "0" for _, step in steps)
                 times = ";".join(f"{start:.3f}" for start, _ in steps)
-                out.append(f'<g id="{name}" opacity="{1 if steps[0][1] == name else 0}"><animate attributeName="opacity" calcMode="discrete" '
+                out.append(f'<g id="{name}" opacity="{1 if steps[0][1] == name else 0}"><animate attributeName="opacity" calcMode="linear" '
                            f'dur="{duration}s" repeatCount="indefinite" keyTimes="{times}" values="{values}"/>')
             if item is None:
                 continue
@@ -220,10 +220,15 @@ def banner(social=False):
         half = ["", "", "....################....", "##....MMMWWMMMMMMM....##", "....################....", "", ""]
         half = [row.ljust(24, ".")[:24] if row else "." * 24 for row in half]
         closed = ["." * 24] * 3 + ["#" * 24] + ["." * 24] * 3
-        for name, rows in (("eye-open", open_eye), ("eye-half", half), ("eye-closed", closed)):
+        mid = ["", "....################....", "..##....MMMMMMMM....##..", "##....MMMWWMMMMMMM....##", "..##....MMMMMMMM....##..", "....################....", ""]
+        mid = [row.ljust(24, ".")[:24] if row else "." * 24 for row in mid]
+        for name, rows in (("eye-open", open_eye), ("eye-mid", mid), ("eye-half", half), ("eye-closed", closed)):
             art.eye(424, y, 12, rows, name)
-        art.animation = (12, [(0, "view"), (.46, "eye-open"), (.60, "eye-half"), (.62, "eye-closed"), (.66, "eye-half"),
-                              (.68, "eye-open"), (.72, "eye-half"), (.74, "eye-closed"), (.78, "eye-half"), (.80, "eye-open"), (.88, "view")])
+        # Soft crossfades: opacity ramps linearly between neighbouring key times, so two equal consecutive entries are a hold.
+        blink = lambda t0: [(t0, "eye-open"), (t0 + .018, "eye-mid"), (t0 + .036, "eye-half"), (t0 + .054, "eye-closed"),
+                            (t0 + .072, "eye-half"), (t0 + .09, "eye-mid"), (t0 + .108, "eye-open")]
+        steps = [(0, "view"), (.38, "view"), (.46, "eye-open")] + blink(.56) + blink(.7) + [(.88, "eye-open"), (.96, "view"), (1, "view")]
+        art.animation = (10, steps)
     icon(art, 1020, y - 4, 1)
     art.text("AGENTS. IN VIEW.", 64, y + (144 if social else 128), 3, MINT)
     if social:

@@ -119,6 +119,7 @@
           $('live-rename').value='alpha lead';$('live-rename-form').dispatchEvent(new Event('submit',{cancelable:true}));
           await until(async()=>(await snapshot())[0].label==='alpha lead','renamed while stopped');
         }
+        await until(()=>!$('live-start').disabled,'start enabled once the previous action finished');
         $('live-start').click();
         await until(async()=>(await snapshot()).filter(s=>s.status==='running').length===(project==='alpha'?1:2),'session launched');
         await until(()=>$('live-notice').textContent.includes('Process launched'),'start finished in the UI');

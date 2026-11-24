@@ -1,4 +1,11 @@
 fn main() {
+    // Build id shown in Settings > About: the short commit when built from a git checkout, or AGENT_APP_BUILD if set.
+    let build = std::env::var("AGENT_APP_BUILD").ok().filter(|s| !s.is_empty() && s.len() <= 40 && s.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'.'))
+        .or_else(|| std::process::Command::new("git").args(["rev-parse", "--short=12", "HEAD"]).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()))
+        .unwrap_or_else(|| "unknown".into());
+    println!("cargo:rustc-env=AGENT_APP_GIT={build}");
+    println!("cargo:rerun-if-env-changed=AGENT_APP_BUILD");
+    println!("cargo:rerun-if-changed=../.git/HEAD");
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "workspace_snapshot", "workspace_send", "workspace_control",
