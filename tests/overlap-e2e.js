@@ -49,7 +49,7 @@
     report('audit',`${view}@${scale}% w=${innerWidth} overlaps=${r.hits.length} clipped=${r.clipped.length} hscroll=${r.scrollX} ${r.hits.slice(0,6).join(' ;; ')} ${[...new Set(r.clipped)].slice(0,5).join(' ;; ')}`);
     return r;
   }
-  const views=[['agents','show-agents'],['sessions','show-live'],['overview','show-overview'],['notes','show-notes'],['cc','show-cc'],['git','show-git'],['review','show-review'],['usage','show-usage'],['settings','show-settings']];
+  const views=[['agents','show-agents'],['sessions','show-live'],['overview','show-overview'],['flow','show-flow'],['notes','show-notes'],['cc','show-cc'],['git','show-git'],['review','show-review'],['usage','show-usage'],['settings','show-settings']];
   async function setScale(v){
     $('show-settings').click();
     const e=$('pref-ui-scale');e.value=String(v);e.dispatchEvent(new Event('input',{bubbles:true}));

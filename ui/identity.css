@@ -50,7 +50,7 @@ button,input,select,textarea,.nav-item{border-radius:6px}
 .nav-item.active{background:var(--surface-2);color:var(--text);box-shadow:none}
 .nav-item.active>span:first-child{color:var(--orange)}
 .nav-label{margin:22px 10px 8px}
-#settings-save,#review-save:not(:disabled),#live-start:not(:disabled),#live-create:not(:disabled),.live-panel button.primary{background:var(--green);border-color:var(--green);color:var(--on-primary,#1b1d1e);font-weight:600}
+#settings-save,#review-save:not(:disabled),#live-start:not(:disabled),#live-register:not(:disabled),.live-panel button.primary{background:var(--green);border-color:var(--green);color:var(--on-primary,#1b1d1e);font-weight:600}
 :root[data-theme=dark] button:not(:disabled):hover{border-color:var(--accent);box-shadow:none}
 .status-dot{box-shadow:0 0 6px var(--green)}
 .review-queue button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);box-shadow:none}
@@ -112,3 +112,8 @@ button,input,select,textarea,.nav-item{border-radius:6px}
 .usage-providers{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
 .usage-providers:empty{display:none}.usage-providers>*{border-right:1px solid var(--line);padding:14px 16px}.usage-providers>*:last-child{border-right:0}
 .live-panel #live-setup{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 16px}
+#live-setup label[for=live-provider]{margin-right:12px}#live-setup #live-probe{margin-left:6px}
+.flow-svg{width:100%;display:block}.flow-edge{stroke:var(--line);stroke-width:1.5}.flow-edge.running{stroke:var(--green)}.flow-edge.quiet,.flow-edge.error{stroke:var(--accent-2,#f08cb0)}
+.flow-node rect{fill:var(--surface-2,var(--surface));stroke:var(--line)}.flow-label{fill:var(--text);font-size:13px}.flow-sub{fill:var(--muted);font-size:11px}
+.flow-you rect{stroke:var(--accent)}.flow-dot{fill:var(--muted);display:inline-block}.flow-dot.running{fill:var(--green)}.flow-dot.quiet{fill:#e6db74}.flow-dot.error{fill:#f08cb0}
+.flow-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;margin:10px 0 0}.flow-legend .flow-dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}.flow-legend .flow-dot.running{background:var(--green)}.flow-legend .flow-dot.quiet{background:#e6db74}.flow-legend .flow-dot.error{background:#f08cb0}

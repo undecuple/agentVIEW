@@ -169,6 +169,10 @@
         assert(!$('ov-stopall').disabled&&/Stop all running \(2\)/.test($('ov-stopall').textContent),'stop-all shows how many are running');
         $('ov-stopall').click();assert(!$('ov-stopall-confirm').hidden&&$('ov-stopall').hidden,'stop-all needs a second confirming click');
         $('ov-stopall-cancel').click();assert($('ov-stopall-confirm').hidden&&!$('ov-stopall').hidden,'stop-all can be cancelled');
+        $('show-flow').click();
+        await until(()=>$('flow-svg').querySelectorAll('.flow-sess').length===2,'flow shows both registered sessions');
+        assert($('flow-svg').querySelectorAll('.flow-prov').length===2&&$('flow-svg').querySelectorAll('.flow-sess[data-state=running]').length===2,'flow shows two providers and both sessions running');
+        assert(!/approv|waiting for (a )?decision/i.test($('flow').textContent.replace(/approvals are made[^.]*\./i,'')),'flow shows no approval state');
         $('show-live').click();
       }
       assert((await snapshot()).filter(s=>s.status==='running').length===2,'two project sessions coexist');

@@ -13,7 +13,9 @@ The workspace window loads one HTML page, `ui/workspace.html`, and a set of plai
 | overview | `overview` | `show-overview` | `overview.js` |
 | notes | `notes` | `show-notes` | `notes.js` |
 | cc (Claude config) | `cc` | `show-cc` | `claudecfg.js` |
+| flow | `flow` | `show-flow` | `flow.js` |
 | git | `git` | `show-git` | `git.js` |
+| (Settings card) webhook | in `settings` | `show-settings` | `webhook.js` |
 | (Settings card) backup | in `settings` | `show-settings` | `backup.js` |
 | review (Pre-PR review) | `review` | `show-review` | `review.js` |
 | usage | `usage` | `show-usage` | `usage.js` |

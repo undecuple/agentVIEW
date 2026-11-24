@@ -22,7 +22,7 @@
     $('live-identity').textContent=s?`${s.project_dir} · App ${s.id} · Provider ${s.provider_session_id||'not established'} · ${s.version} · ${s.executable}`:'Session IDs and launch recipes are saved. Terminal content is kept in memory only.';
     $('live-start').textContent=s&&!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first`:s&&(s.attempted||s.bootstrap_attempted)&&!s.provider_session_id?'Identity needs review':s&&s.attempted?'Resume saved ID':'Start new session';
     $('live-start').disabled=busy||!s||active(s)||!tools.has(s.provider)||((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id);$('live-stop').disabled=busy||!active(s);
-    $('live-state').textContent=s?s.status:'Not started';
+    $('live-state').textContent=s?s.status:'Not started';$('live-state').dataset.state=s?s.status:'';
     {const b=$('live-banner');let m='';
       if(s&&s.status==='exited')m=`This session ended${s.exit_info?' ('+s.exit_info+')':''}${s.exit_at?' at '+new Date(s.exit_at).toLocaleTimeString():''}. Nothing was resent. Start it to resume the saved conversation.`;
       else if(s&&s.status==='interrupted')m='This session was running when the app last closed. Nothing was resent. Start it to resume.';

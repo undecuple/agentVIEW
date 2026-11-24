@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-webhook-status"
+description = "Enables the webhook_status command without any pre-configured scope."
+commands.allow = ["webhook_status"]
+
+[[permission]]
+identifier = "deny-webhook-status"
+description = "Denies the webhook_status command without any pre-configured scope."
+commands.deny = ["webhook_status"]

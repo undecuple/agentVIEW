@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-webhook-clear"
+description = "Enables the webhook_clear command without any pre-configured scope."
+commands.allow = ["webhook_clear"]
+
+[[permission]]
+identifier = "deny-webhook-clear"
+description = "Denies the webhook_clear command without any pre-configured scope."
+commands.deny = ["webhook_clear"]

@@ -21,7 +21,7 @@ Intake agents, project coordinators and subagents, with durable conversations an
 </p>
 
 agentVIEW is a Tauri 2 desktop app with a Rust core. It separates the agent workspace from a restricted document viewer.
-**Sessions** open by default: your own Claude Code and Codex terminals, started explicitly. A simulated hierarchy and chat demo is available as an opt-in (Settings, "Show the simulated demo workspace"). Authenticated native-TUI conversation recovery is awaiting live verification; see [session status and limits](docs/SHARED-SESSIONS.md). The dark theme is Molokai-inspired with soft pink text and the light theme is Cyberdream Light; the screenshots below may show earlier looks. Previews: [hierarchy](docs/agentview-preview.png), [Sessions](docs/agentview-live-preview.png) and [usage](docs/agentview-usage-preview.png) previews..
+**Sessions** open by default: your own Claude Code and Codex terminals, started explicitly. A simulated hierarchy and chat demo is available as an opt-in (Settings, "Show the simulated demo workspace"). Authenticated native-TUI conversation recovery is awaiting live verification; see [session status and limits](docs/SHARED-SESSIONS.md). The dark theme is Molokai-inspired with soft pink text and the light theme is Cyberdream Light; the usage previews may show an earlier look. Previews (synthetic data): [Sessions](docs/agentview-preview.png), [Notes](docs/agentview-notes.png), [Settings](docs/agentview-settings.png), [live-session test capture](docs/agentview-live-preview.png) and [usage](docs/agentview-usage-preview.png).
 
 The **Settings** page controls Molokai Dark, Cyberdream Light, PaperColor Light/Dark and System appearance, scale/density, startup defaults, the simulated-demo switch, terminal preferences, visible-page usage refresh, coordinator prompt presets, and an export/import bundle of preferences and notes. Preferences stay local; provider login/models/permissions remain native. See [settings and recovery](docs/SETTINGS.md).
 
@@ -43,6 +43,10 @@ Tested locally on Linux with WebKitGTK and a private X display:
 | Area | Current state |
 | --- | --- |
 | Overview | All registered sessions: state, terminal data flow, token totals from local records, latest Claude tool name, an attention queue and stop-all. Sub-agents and network bandwidth are not observable and are not shown |
+| Flow | Read-only graph from you to providers to sessions with process-status dots (running, quiet, stopped with an error); no approval state and no sub-agents |
+| Git | Read-only status of repositories that contain an allowed path: branch, ahead/behind, changed files, recent commits, identity check; fixed `git` commands, no writes |
+| Webhooks | Up to five private https destinations, each choosing which events to send ("may be waiting for you" after 10 quiet minutes, stopped with an error, finished); the address is never shown again |
+| Backup | Copies the app's exports folder to an rclone remote you already set up, dry run first, add-only |
 | Notes | Markdown library on shelves in the app's own storage: editor, live preview, save history, search; never touches your repositories |
 | Claude config | Read-only, redacted view of Claude Code's state file (folders, trust flags, MCP server names); never shows secrets and never writes |
 | Pre-PR review | Queue of allow-listed drafts with a checklist and a PASS (manual review) label tied to the file's hash; your own note, not an approval |

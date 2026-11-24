@@ -13,7 +13,7 @@
     "allow-workspace-open-docs",
     "allow-live-probe",
     "allow-live-snapshot",
-    "allow-live-create", "allow-live-set-remote", "allow-live-rename", "allow-live-activity", "allow-live-stop-all", "allow-review-files", "allow-review-load", "allow-review-mark", "allow-review-clear", "allow-notes-list", "allow-claude-config-view", "allow-git-repos", "allow-git-status", "allow-rclone-remotes", "allow-rclone-backup", "allow-notes-get", "allow-notes-save", "allow-notes-delete", "allow-notes-revision", "allow-notes-render", "allow-bundle-export", "allow-bundle-list", "allow-bundle-preview", "allow-bundle-import",
+    "allow-live-create", "allow-live-set-remote", "allow-live-rename", "allow-live-activity", "allow-live-stop-all", "allow-review-files", "allow-review-load", "allow-review-mark", "allow-review-clear", "allow-notes-list", "allow-claude-config-view", "allow-git-repos", "allow-git-status", "allow-rclone-remotes", "allow-rclone-backup", "allow-webhook-status", "allow-webhook-save", "allow-webhook-clear", "allow-webhook-test", "allow-notes-get", "allow-notes-save", "allow-notes-delete", "allow-notes-revision", "allow-notes-render", "allow-bundle-export", "allow-bundle-list", "allow-bundle-preview", "allow-bundle-import",
     "allow-live-start",
     "allow-live-read",
     "allow-live-write",

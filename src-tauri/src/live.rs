@@ -155,3 +155,13 @@ pub fn close_workspace(window:&tauri::Window,state:&LiveState)->bool{
 pub async fn saved_versions(window:tauri::WebviewWindow,state:&LiveState)->Result<Vec<(String,String)>,String>{
     manager(window,state,|m|Ok(m.list()?.into_iter().map(|s|(match s.provider{Provider::Claude=>"claude",Provider::Codex=>"codex"}.to_string(),s.version)).collect())).await
 }
+
+impl LiveState {
+    /// Activity for the background notifier. Never blocks a terminal action: it returns None when the manager is busy,
+    /// not opened yet (no session was ever used in this run) or the workspace is closing.
+    pub fn peek_activity(&self)->Option<Vec<agent_app_sessions::Activity>>{
+        if self.closing.load(Ordering::Acquire){return None;}
+        let mut guard=self.manager.try_lock().ok()?;
+        guard.as_mut()?.activity(&usage_roots()).ok()
+    }
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-webhook-save"
+description = "Enables the webhook_save command without any pre-configured scope."
+commands.allow = ["webhook_save"]
+
+[[permission]]
+identifier = "deny-webhook-save"
+description = "Denies the webhook_save command without any pre-configured scope."
+commands.deny = ["webhook_save"]
