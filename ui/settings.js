@@ -14,7 +14,7 @@
     for(const e of $('settings-form').querySelectorAll('input,select,textarea,button'))e.disabled=blocked;
     $('settings-save').disabled=blocked;$('settings-reload').disabled=saving;
     $('settings-reset').disabled=saving||!snapshot?.writable;
-    $('pref-add-prompt').disabled=blocked||(draft?.quick_prompts.length||0)>=8;
+    $('pref-add-prompt').disabled=blocked||(draft?.quick_prompts.length||0)>=24;$('pref-add-lib').disabled=blocked||(draft?.quick_prompts.length||0)>=24;
     const list=draft?.quick_prompts||[];
     list.forEach((_,i)=>{const row=$('settings-prompts').children[i];if(row?.dataset.preset){row.querySelector('[data-move=up]').disabled=blocked||i===0;row.querySelector('[data-move=down]').disabled=blocked||i===list.length-1;}});
   }
@@ -58,7 +58,31 @@
   };
   $('settings-reload').onclick=async()=>{if(saving)return;try{fill(await AppPrefs.reload());notice(AppPrefs.snapshot.recovery?recovery[AppPrefs.snapshot.recovery]:'Saved preferences reloaded.');}catch(e){notice(String(e));}};
   $('settings-reset').onclick=async()=>{if(saving||!AppPrefs.snapshot?.writable)return;saving=true;controls();try{fill(await AppPrefs.reset(baseRevision));notice('App defaults restored. Projects, conversations and sessions are retained.');loadAbout();}catch(e){notice(`Defaults were not restored: ${String(e)}`);}finally{saving=false;controls();}};
-  $('pref-add-prompt').onclick=()=>{if(!draft||draft.quick_prompts.length>=8)return;draft.quick_prompts.push({id:'p_'+crypto.randomUUID().replaceAll('-',''),label:'New preset',prompt:'Summarize the current project status.'});markDirty();renderPrompts();controls();};
+  // Ready-made prompts people can add to their own list (they become ordinary presets: editable, movable, removable). Plain single-line text, never auto-sent.
+  const LIBRARY=[
+    ['resume','Update my resume state','Update your resume-state notes now (the memory or project notes file your project rules name): current state, decisions made, open items and the next concrete step. Do not change anything else.'],
+    ['handoff-codex','Handoff: Claude to Codex','Write a handoff for a Codex session that will continue this work: goal, current state, files changed, evidence and test results, open issues, and next actions. Put it where the project rules say, and name the file that Codex should read first (AGENTS.md).'],
+    ['handoff-claude','Handoff: Codex to Claude','Write a handoff for a Claude Code session that will continue this work: goal, current state, files changed, evidence and test results, open issues, and next actions. Put it where the project rules say, and name the file that Claude should read first (CLAUDE.md).'],
+    ['pickup','Pick up from a handoff','Read the handoff note for this project and the project rules, then tell me in five lines what you understand the state to be and what you will do first. Do not change anything until I confirm.'],
+    ['blockers','List blockers and decisions','List what is blocking you and each decision you need from me, most important first, with your recommendation for each.'],
+    ['tests','Run tests and report','Run the project tests that apply to your last change and report the exact results. If something fails, say which test and why, and do not hide failures.'],
+    ['review-diff','Review my uncommitted changes','Review the uncommitted changes in this project for bugs, missing tests and anything that breaks the project rules. List findings by severity with file and line, and do not edit anything.'],
+    ['since','What changed since last time','Summarize what changed in this project since the last time we spoke: files, commits, test results and anything surprising.'],
+    ['plan','Plan before editing','Before editing anything, give me a short plan: the files you will touch, the order, how you will check it works, and what could go wrong. Wait for my approval.'],
+    ['failure','Explain the last failure','Explain the last failure you saw: what was run, the exact error, your best explanation, how sure you are, and what you would try next.'],
+    ['rules','Check against project rules','Check your last change against the project rules and conventions, and list any place where it does not follow them.'],
+    ['pause','Pause and ask me first','Pause here. Do not make further changes. Ask me whatever you need to continue safely.'],
+    ['pm-status','Short status for the project manager','Write a short status for the project manager: what is done and verified, what is not verified, what is blocked, and what you need from them. No jargon.'],
+  ];
+  for(const r of (window.AgentRoles||[]).filter(x=>x.kind==='role'))LIBRARY.push(['role-'+r.key,'Onboard: '+r.label,r.prompt.replaceAll('{RULES}','the project rules file (CLAUDE.md or AGENTS.md)')]);
+  (()=>{const sel=$('pref-lib');if(!sel)return;for(const [k,label] of LIBRARY){const o=document.createElement('option');o.value=k;o.textContent=label;sel.append(o);}})();
+  $('pref-add-prompt').onclick=()=>{if(!draft||draft.quick_prompts.length>=24)return;draft.quick_prompts.push({id:'p_'+crypto.randomUUID().replaceAll('-',''),label:'New preset',prompt:'Summarize the current project status.'});markDirty();renderPrompts();controls();};
+  $('pref-add-lib').onclick=()=>{
+    if(!draft||draft.quick_prompts.length>=24)return;
+    const e=LIBRARY.find(x=>x[0]===$('pref-lib').value);if(!e)return;
+    if(draft.quick_prompts.some(p=>p.prompt===e[2])){$('settings-revision').textContent=`"${e[1]}" is already in your list.`;return;}
+    draft.quick_prompts.push({id:('lib_'+e[0].replaceAll('-','_')+'_'+Math.random().toString(36).slice(2,6)).slice(0,40),label:e[1],prompt:e[2]});markDirty();renderPrompts();controls();
+  };
   $('pref-reset-prompts').onclick=()=>{draft.quick_prompts=clone(AppPrefs.snapshot.defaults.quick_prompts);markDirty();renderPrompts();controls();};
   async function loadAbout(){
     if(aboutBusy)return;aboutBusy=true;

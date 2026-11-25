@@ -10,13 +10,18 @@
     await until(()=>document.body.dataset.ready==='true'&&document.body.dataset.preferencesReady==='true','ready');
     const notes=[['Runbooks','Start a release','# Start a release\n\nA checklist kept in this app, not in a repository.\n\n- [ ] Run the test suites\n- [ ] Read the diff\n- [ ] Write the summary\n\n| Step | Owner |\n|---|---|\n| Build | you |\n| Review | a second person |\n\n> Keep notes short and dated.\n'],['Runbooks','Disk cleanup','# Disk cleanup\n\nDelete rebuildable build output first.\n'],['Ideas','Flow view','# Flow view\n\nShow process status only.\n']];
     for(const [shelf,title,body] of notes)await invoke('notes_save',{id:null,shelf,title,body,baseUpdated:null});
+    $('show-agents').click();await shot('agents');
     $('show-live').click();await shot('sessions');
     $('show-overview').click();await shot('overview');
     $('show-flow').click();await shot('flow');
     $('show-notes').click();await until(()=>document.querySelectorAll('#notes-tree button, #notes-tree [data-id]').length>0,'notes listed');
     (document.querySelector('#notes-tree [data-id]')||document.querySelector('#notes-tree button')).click();await shot('notes');
     $('show-cc').click();await shot('claude-config');
+    $('show-git').click();await shot('git');
+    $('show-review').click();await shot('review');
+    $('show-usage').click();await shot('usage');
     $('show-settings').click();await shot('settings');
+    for(const tab of ['notifications','data','about']){window.AppSettingsTabs.select(tab);await shot('settings-'+tab);}
     report('result','pass');
   }catch(e){report('result','fail:'+e.message);}
 })();

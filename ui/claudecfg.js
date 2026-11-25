@@ -26,7 +26,7 @@
   const cell=(tr,t,cls)=>{const td=document.createElement('td');td.textContent=t;if(cls)td.className=cls;tr.append(td);};
   let inv=[];
   function tab(name){
-    for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]'))b.setAttribute('aria-selected',String(b.dataset.ccTab===name));
+    for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]')){b.setAttribute('aria-selected',String(b.dataset.ccTab===name));b.tabIndex=b.dataset.ccTab===name?0:-1;}
     for(const n of ['projects','settings','skills','memory','history'])$('cc-pane-'+n).hidden=n!==name;
     if(name==='settings')loadSettings();if(name==='skills')loadInv();if(name==='memory')loadMem();if(name==='history')loadHist();
   }
@@ -68,6 +68,7 @@
   async function loadHist(){try{sess=await invoke('claude_sessions_list');}catch{sess=[];}drawHist();}
   $('cm-select').onchange=showMem;$('ch-filter').oninput=drawHist;
   for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]'))b.onclick=()=>tab(b.dataset.ccTab);
+  document.getElementById('cc-tabs').addEventListener('keydown',e=>{const bs=[...document.querySelectorAll('#cc-tabs [data-cc-tab]')];const cur=bs.findIndex(b=>b.tabIndex===0);let j=-1;if(e.key==='ArrowRight')j=(cur+1)%bs.length;else if(e.key==='ArrowLeft')j=(cur-1+bs.length)%bs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=bs.length-1;if(j<0)return;e.preventDefault();tab(bs[j].dataset.ccTab);bs[j].focus();});
   $('ci-filter').oninput=drawInv;
   $('show-cc').addEventListener('click',()=>tab('projects'));
   window.AppCcTabs={select:tab};

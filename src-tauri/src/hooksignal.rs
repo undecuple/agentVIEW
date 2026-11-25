@@ -20,7 +20,10 @@ pub fn dir() -> Result<PathBuf, String> {
     if !m.is_dir() || m.uid() != agent_app_core::sys::euid() || m.mode() & 0o077 != 0 { return Err("The signals folder must be private and owned by you".into()); }
     Ok(d)
 }
+/// A path may go into a copy-paste shell snippet only if no character in it means anything to a shell or to the TOML/JSON quoting around it.
+pub fn snippet_safe(p: &str) -> bool { !p.contains(|c: char| matches!(c, '\'' | '"' | '\\' | '$' | '`' | '\n' | '\r') || c.is_control()) }
 pub fn file() -> Result<PathBuf, String> { Ok(dir()?.join("claude-notify.jsonl")) }
+pub fn codex_file() -> Result<PathBuf, String> { Ok(dir()?.join("codex-notify.jsonl")) }
 
 fn safe_id(s: &str) -> bool { !s.is_empty() && s.len() <= 80 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') }
 fn clean(s: &str, max: usize) -> String { s.chars().filter(|c| !c.is_control()).take(max).collect() }
@@ -68,6 +71,7 @@ pub fn waiting_text(kind: &str) -> Option<&'static str> {
     match kind {
         "permission_prompt" | "elicitation_dialog" | "elicitation_url_dialog" | "agent_needs_input" => Some("is waiting for your decision"),
         "idle_prompt" => Some("is waiting for your input"),
+        "turn_complete" => Some("finished its turn and is waiting for your input"),
         _ => None,
     }
 }
@@ -80,8 +84,23 @@ pub fn claude_hook_status(window: tauri::WebviewWindow) -> Result<HookStatus, St
     super::authorized(&window)?;
     let path = file()?;
     let p = path.to_string_lossy().into_owned();
+    if !snippet_safe(&p) { return Err("The signals folder path has characters the snippet cannot carry safely".into()); }
     let command = format!("jq -c '{{t:(now|floor),s:.session_id,c:.cwd,k:(.notification_type // \"\"),m:(.message // \"\")}}' >> \"{p}\"");
     let snippet = serde_json::to_string_pretty(&serde_json::json!({"hooks": {"Notification": [{"hooks": [{"type": "command", "command": command}]}]}})).map_err(|_| "snippet failed")?;
+    let last = last_signal(&path);
+    Ok(HookStatus { file: p, snippet, exists: path.is_file(), last_at: last.as_ref().map(|s| s.t), last_kind: last.map(|s| s.kind) })
+}
+
+/// Codex's `notify` setting runs a program with one JSON argument when a turn completes (the only documented type is `agent-turn-complete`).
+/// The one-line program turns it into the same small signal line. The reply text is deliberately not kept.
+#[tauri::command]
+pub fn codex_hook_status(window: tauri::WebviewWindow) -> Result<HookStatus, String> {
+    super::authorized(&window)?;
+    let path = codex_file()?;
+    let p = path.to_string_lossy().into_owned();
+    if !snippet_safe(&p) { return Err("The signals folder path has characters the snippet cannot carry safely".into()); }
+    let script = format!("printf '%s' \"$1\" | jq -c 'select(.type==\"agent-turn-complete\") | {{t:(now|floor),s:.[\"thread-id\"],c:.cwd,k:\"turn_complete\",m:\"\"}}' >> \"{p}\"");
+    let snippet = format!("notify = [\"sh\", \"-c\", {}, \"sh\"]", serde_json::to_string(&script).map_err(|_| "snippet failed")?);
     let last = last_signal(&path);
     Ok(HookStatus { file: p, snippet, exists: path.is_file(), last_at: last.as_ref().map(|s| s.t), last_kind: last.map(|s| s.kind) })
 }
@@ -116,5 +135,10 @@ mod tests {
         let link = d.path().join("l"); std::os::unix::fs::symlink(&real, &link).unwrap();
         let mut off = 0; assert!(read_new(&link, &mut off).is_empty());
     }
+    #[test] fn codex_line_and_wording() {
+        let l = parse_line(r#"{"t":1700000000,"s":"019a-uuid-1","c":"/p/proj","k":"turn_complete","m":""}"#).unwrap();
+        assert!(waiting_text(&l.kind).unwrap().contains("turn"));
+    }
+    #[test] fn snippet_paths_reject_shell_characters() { assert!(snippet_safe("/srv/a b/data/x")); for bad in ["/h/$HOME", "/h/`x`", "/h/a\"b", "/h/a\\b", "/h/it's", "/h/a\nb"] { assert!(!snippet_safe(bad), "{bad}"); } }
     #[test] fn wording() { assert!(waiting_text("permission_prompt").unwrap().contains("decision")); assert!(waiting_text("idle_prompt").unwrap().contains("input")); assert!(waiting_text("auth_success").is_none()); }
 }

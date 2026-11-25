@@ -24,6 +24,9 @@
     if(a.running&&a.idle_ms!=null&&a.idle_ms>IDLE_ATTENTION_MS)return `no output for ${Math.round(a.idle_ms/60000)} min`;
     return '';
   }
+  let signals=[];
+  const hiddenSet=()=>{try{return new Set(JSON.parse(localStorage.getItem('av-hidden-signals')||'[]'));}catch{return new Set();}};
+  const saveHidden=s=>{try{localStorage.setItem('av-hidden-signals',JSON.stringify([...s].slice(-100)));}catch{}};
   let ticks=0;
   const samples=[];
   function spark(v){samples.push(v);if(samples.length>40)samples.shift();const max=Math.max(1,...samples),n=samples.length;
@@ -66,10 +69,14 @@
     const box=$('ov-attention');box.replaceChildren();
     if(!need.length){const p=document.createElement('p');p.className='muted';p.textContent='Nothing needs attention.';box.append(p);}
     for(const [a,why] of need){const p=document.createElement('p');const b=document.createElement('strong');b.textContent=a.display_name;p.append(b,' '+why);box.append(p);}
+    const hidden=hiddenSet(),sig=signals.filter(x=>!hidden.has(x.t+x.text));
+    if(sig.length){const h=document.createElement('p');h.className='muted';h.textContent='Recent signals (from agent hooks and the background check)';box.append(h);}
+    for(const x of sig){const p=document.createElement('p');p.dataset.signal=x.kind;const tm=document.createElement('span');tm.className='muted';tm.textContent=new Date(x.t*1000).toLocaleTimeString()+' ';
+      const b=document.createElement('button');b.type='button';b.textContent='Hide';b.onclick=()=>{hidden.add(x.t+x.text);saveHidden(hidden);render();};p.append(tm,x.text.replace(/^agentVIEW: /,'')+' ',b);box.append(p);}
     {const runningRows=rows.filter(a=>a.running);let out=0;for(const a of runningRows)out+=(prev.get(a.id)||{out:0}).out;
      let tk=0,any=false;for(const a of rows){const v=tokens.get(a.id);if(v!=null){tk+=v;any=true;}}
      $('st-running').textContent=String(runningRows.length);$('st-running-sub').textContent=`of ${rows.length} registered`;
-     $('st-attention').textContent=String(need.length);$('st-attention').dataset.bad=String(need.length>0);
+     const nAttn=need.length+sig.length;$('st-attention').textContent=String(nAttn);$('st-attention').dataset.bad=String(nAttn>0);
      $('st-flow').textContent=`${fmtB(out)}/s`;spark(out);bars(rows);$('st-tokens').textContent=any?fmtN(tk):'—';}
     const running=rows.filter(a=>a.running).length;
     $('ov-stopall').disabled=!running;$('ov-stopall').textContent=running?`Stop all running (${running})`:'Stop all running';
@@ -79,6 +86,10 @@
     if(document.hidden||$('overview').hidden)return;
     try{
       const [act,use]=await Promise.all([invoke('live_activity'),invoke('usage_snapshot').catch(()=>({sessions:[]}))]);
+      signals=await invoke('attention_list').catch(()=>[]);
+      {const ls=await invoke('claude_limits_status',{}).catch(()=>null),el=$('ov-limits'),l=ls&&ls.limits;
+       const nowS=Date.now()/1000,live=w=>w&&w.resets_at>nowS?w:null,f5=l&&live(l.five),s7=l&&live(l.seven);
+       el.hidden=!(f5||s7);if(f5||s7){const a=ls.age_s,age=a<90?'just now':a<5400?`${Math.round(a/60)} min ago`:`${Math.round(a/3600)} h ago`;el.textContent='Claude plan limits: '+[f5&&`5-hour ${Math.round(f5.pct)}%`,s7&&`7-day ${Math.round(s7.pct)}%`].filter(Boolean).join(' · ')+` (as of ${age}, from Claude Code's status line; may be out of date)`;}}
       rows=act;tokens=new Map((use.sessions||[]).map(s=>[s.app_session_id,s.totals&&s.totals.total_tokens]));
       sample(rows);render();$('ov-updated').textContent='Updated '+new Date().toLocaleTimeString();
     }catch(e){$('ov-summary').textContent=String(e);}

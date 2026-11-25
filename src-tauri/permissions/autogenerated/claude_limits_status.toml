@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-claude-limits-status"
+description = "Enables the claude_limits_status command without any pre-configured scope."
+commands.allow = ["claude_limits_status"]
+
+[[permission]]
+identifier = "deny-claude-limits-status"
+description = "Denies the claude_limits_status command without any pre-configured scope."
+commands.deny = ["claude_limits_status"]

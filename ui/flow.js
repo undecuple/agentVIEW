@@ -12,7 +12,7 @@
   }
   const short=s=>s.length>26?s.slice(0,25)+'…':s;
   function draw(rows){
-    const svg=$('flow-svg');svg.replaceChildren();
+    const svg=$('flow-svg');svg.replaceChildren();const fl=$('flow-list');fl.replaceChildren();for(const a of rows){const li=document.createElement('li');li.textContent=`${a.display_name}${a.project?' ('+a.project+')':''}: ${state(a)[1]}`;fl.append(li);}
     const provs=['claude','codex'].map(p=>[p,rows.filter(r=>r.provider===p)]).filter(x=>x[1].length);
     $('flow-empty').hidden=rows.length>0;svg.hidden=!rows.length;if(!rows.length)return;
     const rowH=46,top=20,count=rows.length;
@@ -34,6 +34,11 @@
     rows.sort((a,b)=>a.provider.localeCompare(b.provider)||a.display_name.localeCompare(b.display_name));
     $('flow-note').textContent='Process status only, from what the app can observe. Decisions and approvals are made in each terminal, and sub-agents are not visible here.';
     draw(rows);
+    try{
+      const tl=await AppIPC.invoke('timeline_list');const body=$('flow-tl-body');body.replaceChildren();
+      $('flow-tl-empty').hidden=tl.length>0;$('flow-tl').hidden=!tl.length;
+      for(const e of tl.slice(0,60)){const tr=document.createElement('tr');for(const v of [new Date(e.t*1000).toLocaleTimeString(),e.name,e.event]){const td=document.createElement('td');td.textContent=v;tr.append(td);}body.append(tr);}
+    }catch{}
   }
   const start=()=>{stop();load();timer=setInterval(()=>{if(!document.hidden)load();},5000);};
   const stop=()=>{if(timer){clearInterval(timer);timer=null;}};

@@ -11,19 +11,21 @@ The workspace window loads one HTML page, `ui/workspace.html`, and a set of plai
 | agents (demo only) | `deck` | `show-agents` | `workspace.js` |
 | sessions | `live` | `show-live` | `live.js` |
 | overview | `overview` | `show-overview` | `overview.js` |
-| notes | `notes` | `show-notes` | `notes.js` |
+| notes | `notes` | `show-notes` | `notes.js` (also the Ctrl+K page switcher, `#qs-dialog`) |
 | cc (Claude config) | `cc` | `show-cc` | `claudecfg.js` |
 | flow | `flow` | `show-flow` | `flow.js` |
 | git | `git` | `show-git` | `git.js` |
 | (Claude config tabs) Settings, Skills & agents | in `cc` | `show-cc` | `claudecfg.js` |
 | (Settings tabs) General, Data, Notifications, About | in `settings` | `show-settings` | `tabs.js` (shows or hides blocks only) |
-| (Settings card) webhook | in `settings` | `show-settings` | `webhook.js` |
+| (Settings cards) webhook, Claude hook, Codex notify, Claude plan limits, desktop notifications | in `settings` | `show-settings` | `webhook.js` |
 | (Settings card) backup | in `settings` | `show-settings` | `backup.js` |
 | review (Pre-PR review) | `review` | `show-review` | `review.js` |
 | usage | `usage` | `show-usage` | `usage.js` |
 | settings | `settings` | `show-settings` | `settings.js` (bundle export and import buttons are wired in `notes.js`) |
 
 The sidebar has a ninth button, Documents (`open-docs`), which is not a page: it calls `workspace_open_docs` and opens the separate read-only viewer window. Sidebar groups: WORKSPACE (Agents when demo is on, Overview, Sessions, Documents), TOOLS (Notes, Claude config, Pre-PR review, Token usage), APP (Settings). The sidebar collapses to icons; the choice is kept in the browser's `localStorage` under one key and works without it.
+
+Page details added later: `away.js` is the Overview "I'm stepping away" card (`away_status`: toggle, parked questions, hook and instruction text). `queues.js` draws the Flow page's hidden-until-used Queues card from `queues_view` (running, waiting in order, reserved, over-estimate marker; refresh every 5 s while visible). `board.js` draws the Flow page's project board from `kanban_projects` and `kanban_board` (refresh every 5 s while visible, stale marker after an hour). `projwrite.js` is the consent dialog (`window.ProjWrite.open`) used by the Onboarding card and the Handoff note; it calls `project_file_preview` then `project_file_write` (two-step confirm, optional backup). `roles.js` (loaded right after `prefs.js`) holds the built-in role onboarding documents and one-line role prompts as fixed text; it fills the "Onboarding templates" card on the Notes page and adds the role prompts to the quick-prompt library in `settings.js`. `issuehelper.js` builds the "Report a problem or suggest something" card in Settings, About (copy buttons and a prefilled link to the GitHub issue forms; it sends nothing). The Settings tab groups in `tabs.js` must list every card of a tab, or the card shows on all tabs. `resumestate.js` (loaded after `overview.js`, on the Overview page) joins `live_activity` with `claude_memory_list` to show whether each session's notes files look current, and builds a handoff note from `session_changes` and the file list (copy, or save to the Notes shelf "Handoffs" with `notes_save`); it adds no command. `overview.js` also shows the "Needs you" signals (`attention_list`, per-line Hide kept in `localStorage`) and the plan-limit line (`claude_limits_status`); `flow.js` adds a "Recent activity" table (`timeline_list`); `live.js` adds the Resume panel for interrupted sessions (it calls the same `live_start` as the Start button, with the same gating) and the "Changes in this project" section (`session_changes`, refreshed every 10 s while open); `settings.js` holds the quick-prompt editor (up to 24) and the built-in prompt library.
 
 ## Shared helpers (all in `ui/prefs.js`, loaded first)
 
@@ -49,3 +51,5 @@ Setting values: `dark` (Molokai Dark, the default), `light` (Cyberdream Light), 
 ## Notes on safety in the UI
 
 Rendered Markdown comes from `core::markdown::render` (escape first, links shown as text, no HTML, no images). Page scripts set `textContent` for user data and use `innerHTML` only for that rendered output.
+
+`board.js` also offers "Save board as Markdown…": it builds a snapshot and opens the project-write dialog with the fixed name `BOARD.md` (preview, confirm, optional backup).

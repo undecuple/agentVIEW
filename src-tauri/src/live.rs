@@ -118,8 +118,28 @@ pub async fn live_create(window:tauri::WebviewWindow,state:tauri::State<'_,LiveS
     if !path.is_absolute(){return Err("Choose an absolute project directory".into());}
     manager(window,&state,move|m|m.create_for(provider,&label,&path)).await
 }
+static STARTED:std::sync::Mutex<Vec<(String,i64)>>=std::sync::Mutex::new(Vec::new());
+fn now_s()->i64{std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d|d.as_secs() as i64).unwrap_or(0)}
 #[tauri::command]
-pub async fn live_start(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String)->Result<SessionInfo,String>{manager(window,&state,move|m|m.start(&id)).await}
+pub async fn live_start(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String)->Result<SessionInfo,String>{
+    let sid=id.clone();let info=manager(window,&state,move|m|m.start(&id)).await?;
+    if let Ok(mut s)=STARTED.lock(){s.retain(|(i,_)|*i!=sid);s.push((sid,now_s()));}
+    Ok(info)
+}
+/// The project folder of one registered session (for the consent-gated document writes).
+pub(crate) async fn session_dir(window:tauri::WebviewWindow,state:&LiveState,id:&str)->Result<String,String>{
+    let list=manager(window,state,|m|m.list()).await?;
+    list.into_iter().find(|s|s.id==id).map(|s|s.project_dir).ok_or_else(||"That session no longer exists".to_string())
+}
+/// Changes in the folder of one registered session: files changed now and commits since the app started or resumed it (in this app run; unknown after a restart).
+#[tauri::command]
+pub async fn session_changes(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,cfg:tauri::State<'_,Arc<agent_app_core::Config>>,id:String)->Result<super::gitview::SessionChanges,String>{
+    let list=manager(window,&state,|m|m.list()).await?;
+    let dir=list.into_iter().find(|s|s.id==id).ok_or("That session no longer exists")?.project_dir;
+    let since=STARTED.lock().ok().and_then(|s|s.iter().find(|(i,_)|*i==id).map(|(_,t)|*t)).map(|t|now_s()-t);
+    let cfg=Arc::clone(&cfg);
+    tauri::async_runtime::spawn_blocking(move||super::gitview::changes_in(std::path::Path::new(&dir),&cfg,since)).await.map_err(|_|"Could not read the changes".to_string())?
+}
 #[tauri::command]
 pub async fn live_read(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String,generation:String,offset:u64)->Result<ReadResult,String>{manager(window,&state,move|m|m.read(&id,&generation,offset)).await}
 #[tauri::command]

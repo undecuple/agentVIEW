@@ -46,6 +46,26 @@
       link:()=>w('[','](https://)','text'),table:()=>t.setRangeText('| Column | Column |\n| --- | --- |\n| cell | cell |\n',s,e,'end')})[kind]();
     t.focus();schedule();
   }
+  // Quick switcher: Ctrl+K on the Notes page, type part of a title or shelf, Enter opens.
+  const qs={dlg:$('qs-dialog'),inp:$('qs-input'),ul:$('qs-list'),items:[],sel:0};
+  function qsDraw(){
+    const q=qs.inp.value.trim().toLowerCase();
+    qs.items=list.filter(n=>!q||(n.title+' '+n.shelf).toLowerCase().includes(q)).slice(0,12);
+    if(qs.sel>=qs.items.length)qs.sel=Math.max(0,qs.items.length-1);
+    qs.ul.replaceChildren();
+    qs.items.forEach((n,i)=>{const li=document.createElement('li');li.id='qs-'+i;li.setAttribute('role','option');li.setAttribute('aria-selected',String(i===qs.sel));li.className='qs-item';li.textContent=`${n.title||'Untitled'} · ${n.shelf}`;li.onclick=()=>qsGo(i);qs.ul.append(li);});
+    if(!qs.items.length){const li=document.createElement('li');li.className='muted';li.textContent='No pages match.';qs.ul.append(li);}
+    qs.inp.setAttribute('aria-activedescendant',qs.items.length?'qs-'+qs.sel:'');
+  }
+  function qsGo(i){const n=qs.items[i];if(!n)return;qs.dlg.close();open(n.id);}
+  async function qsOpen(){if(!$('notes').offsetParent)return;try{list=await invoke('notes_list',{query:''});}catch(e){return err(e);}qs.inp.value='';qs.sel=0;qsDraw();qs.dlg.showModal();qs.inp.focus();}
+  qs.inp.addEventListener('input',()=>{qs.sel=0;qsDraw();});
+  qs.inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(qs.items.length){qs.sel=(qs.sel+(e.key==='ArrowDown'?1:-1)+qs.items.length)%qs.items.length;qsDraw();}}
+    else if(e.key==='Enter'){e.preventDefault();qsGo(qs.sel);}
+  });
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'&&$('notes').offsetParent){e.preventDefault();qsOpen();}});
+  $('notes-jump').onclick=qsOpen;
   $('notes-search').oninput=()=>{clearTimeout($('notes-search')._t);$('notes-search')._t=setTimeout(refresh,200);};
   $('notes-new').onclick=()=>{if(dirty&&!confirm('Discard unsaved changes to this page?'))return;show({id:0,shelf:$('note-shelf').value||'General',title:'',body:'',updated:'',revisions:[]});$('note-title').focus();};
   for(const id of ['note-body','note-title','note-shelf'])$(id).addEventListener('input',schedule);
