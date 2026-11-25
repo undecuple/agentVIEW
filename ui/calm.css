@@ -153,3 +153,11 @@ details.muted>summary{font-weight:500;color:var(--muted);font-size:.875rem}
 .usage-toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:var(--s4)}
 .usage-providers{overflow:hidden}
 .notes-list .inline-form{flex-wrap:wrap}.notes-list input[type=search]{flex:1 1 100%}
+
+/* Use the whole window: no fixed content cap; two-column pages share the width 2:1 and tables scroll inside their card */
+.settings-panel,.live-panel,.usage-panel,.notes-panel,.review-panel,.overview-panel{max-width:none}
+.two-col{grid-template-columns:minmax(0,2fr) minmax(300px,1fr)}
+.two-col>.card{min-width:0;overflow:hidden}
+.card .ov-scroll,.ov-scroll{overflow-x:auto;max-width:100%}
+.stat-row{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+@media(min-width:1500px){.notes-layout{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}.live-layout{grid-template-columns:minmax(260px,320px) minmax(0,1fr)}}
