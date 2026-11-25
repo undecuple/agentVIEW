@@ -123,6 +123,7 @@
         $('live-start').click();
         await until(async()=>(await snapshot()).filter(s=>s.status==='running').length===(project==='alpha'?1:2),'session launched');
         await until(()=>$('live-notice').textContent.includes('Process launched'),'start finished in the UI');
+        assert($('live-rename').getBoundingClientRect().height<80,'the rename box is one line tall, not stretched');
         if(project==='alpha'){assert($('live-rename').disabled&&$('live-remote-enable').disabled,'rename and Remote Control are locked while running');}
         if(project==='beta'){assert($('live-remote').hidden,'Remote Control is not offered for Codex');}
       }

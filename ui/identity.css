@@ -141,7 +141,7 @@ main{margin-left:250px}
 .topbar{border-bottom:0;height:58px}
 /* Rename box: same look as the other inputs (it sat in an inline form and kept the browser default border) */
 #live-rename-form{align-items:center;gap:10px}
-#live-rename{flex:0 1 320px;min-width:180px;width:auto;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:0.9375rem;outline:0}
+#live-rename{flex:none;width:min(320px,100%);min-width:180px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:0.9375rem;outline:0}
 #live-rename:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 /* Polish: readable disabled buttons, one control size, visible focus, empty terminal, roster dots */
 button:disabled{opacity:1;color:var(--muted);background:transparent;border-color:var(--line);border-style:dashed;cursor:not-allowed}
