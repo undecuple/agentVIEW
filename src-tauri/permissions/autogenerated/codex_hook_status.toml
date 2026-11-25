@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-codex-hook-status"
+description = "Enables the codex_hook_status command without any pre-configured scope."
+commands.allow = ["codex_hook_status"]
+
+[[permission]]
+identifier = "deny-codex-hook-status"
+description = "Denies the codex_hook_status command without any pre-configured scope."
+commands.deny = ["codex_hook_status"]

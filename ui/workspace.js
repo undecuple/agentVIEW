@@ -147,3 +147,5 @@
   async function pulse() { if (ticking||document.body.dataset.demo!=='true') return; ticking = true; try { await invoke('workspace_tick'); await refresh(); } catch(e) { notice(String(e)); } finally { ticking = false; } }
   refresh(); setInterval(pulse,1000);
 })();
+// Plain-language error text: what failed, the reason the app gave, and a next step.
+window.friendly=(what,e)=>{const r=String((e&&e.message)||e||'').replace(/^Error:\s*/,'').trim();return `${what}. ${r?r+(/[.!?]$/.test(r)?'':'.')+' ':''}Try again; if it keeps happening, restart the app or check Settings, About for diagnostics.`;};

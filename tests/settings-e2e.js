@@ -66,6 +66,29 @@
       const pending=callbacks.pop();$('show-settings').click();if(pending)await pending();assert(refreshes===1,'hidden Usage does not refresh from an old timer callback');
       window.setTimeout=nativeTimeout;document.hasFocus=nativeFocus;AppIPC.invoke=nativeInvoke;
       $('pref-reset-prompts').click();await save();assert((await snapshot()).settings.quick_prompts[0].label==='Review shared inbox','restore default presets works separately');
+      { // tabs and the issue helper
+        const vis=id=>!$(id).hidden;
+        window.AppSettingsTabs.select('general');assert(!vis('hook-box')&&!vis('codexcfg-box')&&!vis('limits-box')&&!vis('desk-box')&&!vis('ih-box'),'notification and about cards are hidden on General');
+        window.AppSettingsTabs.select('notifications');assert(vis('hook-box')&&vis('codexcfg-box')&&vis('limits-box')&&vis('desk-box')&&!vis('ih-box'),'all notification cards show on the Notifications tab only');
+        window.AppSettingsTabs.select('about');assert(vis('ih-box')&&!vis('desk-box'),'the issue helper shows on the About tab');
+        const set=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('input'));};
+        await until(()=>$('ih-version').value.startsWith('agentVIEW '),'issue helper knows the version');
+        set('ih-title','Terminal blank after resume');set('ih-what','It stays blank. Log in /'+'home/someone/proj/x.log');
+        assert($('ih-copy-link').disabled&&/distribution/.test($('ih-note').textContent),'bug link needs the system field');
+        set('ih-system','Arch Linux, WebKitGTK 2.46');
+        assert(!$('ih-copy-link').disabled,'link enabled when the form is complete');
+        const u=new URL($('ih-link').value);
+        assert(u.origin+u.pathname==='https://github.com/undecuple/agentVIEW/issues/new'&&u.searchParams.get('template')==='bug_report.yml'&&u.searchParams.get('build').startsWith('agentVIEW ')&&u.searchParams.get('system')==='Arch Linux, WebKitGTK 2.46','link targets the bug form with its field ids');
+        assert(u.searchParams.get('what').includes('~/proj/x.log')&&!u.searchParams.get('what').includes('/home/'),'home-folder paths are shortened');
+        set('ih-what','token ghp_'+'abcdefghijklmnopqrstuvwxyz0123456789');
+        assert($('ih-copy-link').disabled&&$('ih-copy-what').disabled&&/token/.test($('ih-note').textContent),'a token-shaped string blocks copying');
+        set('ih-what','x');$('ih-kind').value='feature';$('ih-kind').dispatchEvent(new Event('input'));
+        assert(new URL($('ih-link').value).searchParams.get('template')==='feature_request.yml'&&!new URL($('ih-link').value).searchParams.has('build'),'feature link uses the feature form');
+        window.AppSettingsTabs.select('general');
+      }
+      assert([...$('pref-lib').options].some(o=>o.value==='role-worker'&&o.textContent==='Onboard: Worker'),'role onboarding prompts are in the library');
+      $('pref-lib').value='pickup';$('pref-add-lib').click();$('pref-lib').value='pickup';$('pref-add-lib').click();await save();
+      { const q=(await snapshot()).settings.quick_prompts;assert(q.length===4&&q[3].label==='Pick up from a handoff'&&q.filter(x=>x.label==='Pick up from a handoff').length===1&&/^lib_pickup_/.test(q[3].id),'a library prompt is added once and persists as an ordinary preset'); }
       $('open-docs').click();await until(()=>new Promise(resolve=>{const s=document.createElement('script');s.src='/__workspace-docs-status.js';s.onload=()=>{s.remove();resolve(window.__docsDenied);};document.head.append(s);}), 'Documents denies Settings and export commands');
       report('phase','settings-restart');
     }else if(TEST_PHASE==='corrupt'){

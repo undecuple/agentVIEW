@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-away-status"
+description = "Enables the away_status command without any pre-configured scope."
+commands.allow = ["away_status"]
+
+[[permission]]
+identifier = "deny-away-status"
+description = "Denies the away_status command without any pre-configured scope."
+commands.deny = ["away_status"]

@@ -5,7 +5,7 @@ use rusqlite::{params, Transaction};
 use std::net::Ipv4Addr;
 
 pub const MAX_HOOKS: i64 = 5;
-pub const EVENTS: [&str; 4] = ["quiet", "error", "finished", "waiting"];
+pub const EVENTS: [&str; 5] = ["quiet", "error", "finished", "waiting", "limit"];
 
 pub(super) fn initialize(tx: &Transaction<'_>) -> Result<()> {
     db(tx.execute_batch(

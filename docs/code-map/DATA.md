@@ -10,8 +10,11 @@ flowchart LR
     S[("sessions.sqlite3")]
     L["manager.lock"]
     E["exports/"]
+    SG["signals/"]
+    FL["flag files: desktop-notify, limit-alert-pct"]
   end
   SD --> S
+  SG --> SF["claude-notify.jsonl, codex-notify.jsonl, claude-limits.json (written by the person's own hooks and status line; the app only reads)"]
   SD --> L
   E --> B["agentview-bundle-*.json"]
   E --> G["agentview-diagnostics-*.json"]
@@ -55,6 +58,30 @@ Only under `exports/`, with mode 0600 and create-new:
 
 The only browser-side storage is the sidebar-collapse flag in `localStorage`.
 
+## Signals folder and flag files
+
+`signals/` (mode 0700, owned by you) holds files that the person's own tools write and the app only reads (symlinks refused, size capped, fields validated, text redacted): `claude-notify.jsonl` (Claude Notification hook), `codex-notify.jsonl` (Codex `notify`, turn finished) and `claude-limits.json` (the status line's 5-hour and 7-day plan usage, 4 KB cap). The app creates the folder; the snippets in Settings tell the person what to add to their own Claude or Codex settings, and the app never edits those. Two small flag files in the data directory hold app choices: `desktop-notify` (desktop notifications on) and `limit-alert-pct` (plan-limit alert percentage).
+
+## Away mode
+
+`away` (flag, content = start time), `away-instruction.txt`, `away-seen` (time) in the data folder, written by the app (mode 0600); `decisions/pending.jsonl` (folder mode 0700) holds the questions agents park. `away.rs` reads the decisions and writes only its own three files.
+
+## Queues
+
+`queues/<name>.jsonl` (folder mode 0700) holds the event lines a scheduler or `scripts/adapters/lockdir-queue.sh` writes; `queues.rs` folds the last 256 KB (newest line per id wins) and the Flow page draws it (`ui/queues.js`). Read-only for the app.
+
+## Project boards
+
+`kanban/<project>.jsonl` (folder mode 0700) holds the event lines agents append for a project board; `kanban.rs` folds the last 256 KB (newest line per card id wins) and the Flow page draws it (`ui/board.js`). Read-only for the app.
+
+## Mailbox
+
+`mailbox/` (mode 0700) holds `messages.jsonl` (one JSON line per message, appended by agents) and `<file>.<name>.pos` cursor files written by each recipient's own receive hook. The app only reads `messages.jsonl` (`mailbox.rs`); messages are data, never approvals.
+
+## Backups and project writes
+
+`backups/` (mode 0700) holds copies of project files the person chose to back up before the app replaced them through the consent dialog (`projwrite.rs`), plus `manifest.jsonl`. The app never deletes them. It writes into a project folder only for the three fixed file names, only into a registered session's folder, never through a link, only after a preview and an explicit confirm.
+
 ## Read-only sources
 
 - **Allow-list** (`allowlist.toml` in the config directory): must be a plain file owned by you, not group or other writable, up to 1 MB. Keys: `allow`, `deny_names`, `gate_file`. It is read once at startup, so edits need a restart. If it fails to load the app falls back to an empty allow-list and shows a banner.
@@ -64,6 +91,7 @@ The only browser-side storage is the sidebar-collapse flag in `localStorage`.
 ## In-memory state (lost on exit)
 
 - Terminal output: a ring buffer of 256 KiB per running session (at most 2 running). Reads return up to 64 KiB and report `truncated` if the offset fell out of the buffer; writes are at most 16 KiB. Terminal content is never saved.
+- The "Needs you" list (30 lines, 6 hours, `notify.rs`), the session timeline (300 events, 24 hours, `notify.rs`), the time each session was started in this app run (`live.rs`, for "Changes in this project"), and the hourly send counters for webhooks and desktop notifications.
 - `LiveState` (the session manager and the usage connection), `WorkspaceState` (the store) and the parsed allow-list.
 
 ## Path policy and redaction (`core::policy`)

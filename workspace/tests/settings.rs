@@ -63,7 +63,10 @@ fn quick_prompts_reject_control_injection_and_allow_empty_lists_and_bounded_unic
     let mut settings=AppSettings::default();settings.quick_prompts[0].prompt="🚀".repeat(4001);assert!(store.settings_save(0,settings).is_err());
     let mut settings=AppSettings::default();settings.quick_prompts.clear();let saved=store.settings_save(0,settings).unwrap();assert!(saved.settings.quick_prompts.is_empty());
     let mut maximum=saved.settings;maximum.quick_prompts=(0..8).map(|i|QuickPrompt{id:format!("prompt_{i}"),label:"🚀".repeat(48),prompt:"🚀".repeat(4000)}).collect();
-    assert_eq!(store.settings_save(saved.revision,maximum).unwrap().settings.quick_prompts.len(),8);
+    let saved=store.settings_save(saved.revision,maximum).unwrap();assert_eq!(saved.settings.quick_prompts.len(),8);
+    let many=|n:usize|(0..n).map(|i|QuickPrompt{id:format!("p_{i}"),label:format!("Prompt {i}"),prompt:"Summarize the current project status.".into()}).collect::<Vec<_>>();
+    let mut s=saved.settings.clone();s.quick_prompts=many(24);let saved=store.settings_save(saved.revision,s).unwrap();assert_eq!(saved.settings.quick_prompts.len(),24);
+    let mut s=saved.settings.clone();s.quick_prompts=many(25);assert!(store.settings_save(saved.revision,s).is_err(),"more than 24 presets are refused");
 }
 
 #[test]

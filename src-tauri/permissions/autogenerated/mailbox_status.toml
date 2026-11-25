@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mailbox-status"
+description = "Enables the mailbox_status command without any pre-configured scope."
+commands.allow = ["mailbox_status"]
+
+[[permission]]
+identifier = "deny-mailbox-status"
+description = "Denies the mailbox_status command without any pre-configured scope."
+commands.deny = ["mailbox_status"]

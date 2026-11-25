@@ -103,7 +103,7 @@ impl AppSettings {
             ||!one_of(&self.hierarchy_view,&["tree","project"])||!one_of(&self.live_provider_filter,&["","claude","codex"])
             ||!one_of(&self.usage_provider,&["","claude","codex"])||!one_of(&self.usage_period,&["all","today","7","30"])
             ||!(10..=24).contains(&self.terminal_font_size)||self.terminal_scrollback>10000
-            ||![0,60,300,900].contains(&self.usage_refresh_seconds)||self.quick_prompts.len()>8{
+            ||![0,60,300,900].contains(&self.usage_refresh_seconds)||self.quick_prompts.len()>24{
             return Err("Invalid application settings".into());
         }
         let mut ids=HashSet::new();

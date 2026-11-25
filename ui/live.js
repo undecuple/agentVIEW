@@ -8,7 +8,26 @@
   const notice=text=>{$('live-notice').textContent=text;};
   const current=()=>sessions.find(s=>s.id===selected);
   const active=s=>s&&s.status==='running';
+  // Opt-in resume after a restart: lists sessions the app found "interrupted" and resumes only the ones a person confirms, by exact saved ID. Nothing is resent.
+  let resumeAll=false,armedFocus=false;
+  function renderResume(){
+    const box=$('live-resume'),list=sessions.filter(s=>s.status==='interrupted');
+    box.hidden=!list.length;if(!list.length){resumeAll=false;return;}
+    const head=document.createElement('p');head.textContent=`The app closed while ${list.length} agent${list.length===1?' was':'s were'} working. You can pick up where ${list.length===1?'it':'each'} left off. Nothing was restarted or resent. Each one resumes its saved conversation in its own folder, with your usual permission mode (${[...new Set(list.map(s=>s.provider==='claude'?'claude --resume':'codex resume'))].join(' and ')}).`;
+    const row=document.createElement('div');row.className='inline-form';
+    for(const s of list){const b=document.createElement('button');b.type='button';b.dataset.resume=s.id;const why=!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first (Provider & project setup)`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'Saved session ID is missing':'';b.disabled=busy||!!why;b.title=why;b.textContent=`Resume ${s.label||s.id}`;b.onclick=()=>{selected=s.id;render();$('live-start').click();};row.append(b);}
+    const all=document.createElement('button');all.type='button';all.id='live-resume-all';all.disabled=busy||list.length<2;all.textContent=resumeAll?`Confirm: resume all ${list.length}`:`Resume all (${list.length})`;
+    all.onclick=async()=>{
+      if(!resumeAll){resumeAll=true;armedFocus=true;renderResume();return;}
+      resumeAll=false;if(busy)return;busy=true;mutation++;render();let ok=0,fail=0;
+      for(const s of list){try{const started=await invoke('live_start',{id:s.id});sessions=sessions.map(x=>x.id===s.id?started:x);ok++;}catch{fail++;}}
+      busy=false;mutation++;rosterSig='';notice(`Resumed ${ok} session${ok===1?'':'s'}${fail?`, ${fail} could not start (open it to see why)`:''}. No prompt was sent automatically.`);await refresh();render();
+    };
+    row.append(all);box.replaceChildren(head,row);
+    if(armedFocus){armedFocus=false;all.focus();}
+  }
   function render(){
+    renderResume();
     const roster=$('live-roster');roster.replaceChildren();
     for(const s of sessions.filter(s=>!$('live-filter').value||s.provider===$('live-filter').value)){
       const button=document.createElement('button');button.type='button';button.className='live-session';button.dataset.session=s.id;button.setAttribute('aria-pressed',String(selected===s.id));
@@ -111,6 +130,25 @@
   $('live-filter').onchange=()=>{render();AppPrefs.remember({live_provider_filter:$('live-filter').value});};
   $('live-probe').onclick=async()=>{const provider=$('live-provider').value;try{const tool=await invoke('live_probe',{provider});tools.set(provider,tool);showTool();inspected=true;await refresh();}catch(e){notice(String(e));}};
   $('live-create').onsubmit=async event=>{event.preventDefault();if(busy)return;busy=true;mutation++;try{const s=await invoke('live_create',{provider:$('live-provider').value,label:$('live-label').value,projectDir:$('live-directory').value});selected=s.id;await refresh();notice('Project registered. Start explicitly after reviewing the directory and CLI above.');}catch(e){notice(String(e));}finally{busy=false;render();}};
+  // Changes in the selected session's repository: files changed now and commits since the app started or resumed the session. Read-only git on the Rust side.
+  let chgTimer=null,chgFor=null;
+  async function loadChanges(){
+    const s=current(),box=$('live-changes-body'),note=$('live-changes-note');
+    if(!$('live-changes').open)return;
+    if(!s){box.replaceChildren();note.textContent='Select a session.';return;}
+    try{
+      const r=await invoke('session_changes',{id:s.id});if(current()?.id!==s.id)return;
+      const frag=document.createDocumentFragment();
+      const h=document.createElement('p');h.textContent=`${r.repo} · branch ${r.branch||'unknown'} · ${r.total} changed file${r.total===1?'':'s'}${r.hidden_by_policy?` (${r.hidden_by_policy} hidden by the deny rules)`:''}`;frag.append(h);
+      if(r.files.length){const ul=document.createElement('ul');for(const f of r.files.slice(0,100)){const li=document.createElement('li');li.textContent=`${f.state}  ${f.path}`;ul.append(li);}frag.append(ul);}
+      const c=document.createElement('p');c.textContent=r.since_s!=null?`Commits since this session was started in this app run (${Math.max(1,Math.round(r.since_s/60))} min ago): ${r.commits.length}`:`Start time unknown after a restart; the latest ${r.commits.length} commits:`;frag.append(c);
+      if(r.commits.length){const ul=document.createElement('ul');for(const k of r.commits){const li=document.createElement('li');li.textContent=`${k.id}  ${k.date}  ${k.subject}`;ul.append(li);}frag.append(ul);}
+      box.replaceChildren(frag);note.textContent=r.note;
+    }catch(e){box.replaceChildren();note.textContent=String(e);}
+  }
+  $('live-changes').addEventListener('toggle',()=>{clearInterval(chgTimer);chgTimer=null;if($('live-changes').open){loadChanges();chgTimer=setInterval(()=>{if(!document.hidden&&!$('live-changes').closest('[hidden]'))loadChanges();},10000);}});
+  $('live-changes-reload').onclick=loadChanges;
+  new MutationObserver(()=>{if(current()?.id!==chgFor){chgFor=current()?.id;loadChanges();}}).observe($('live-roster'),{childList:true,subtree:true,attributes:true});
   $('live-start').onclick=async()=>{const s=current();if(!s||busy)return;busy=true;mutation++;render();notice(`Starting ${providerName(s.provider)}; waiting for native session setup. Closing cancels startup.`);try{const started=await invoke('live_start',{id:s.id});sessions=sessions.map(item=>item.id===s.id?started:item);$('live-setup').open=false;notice('Process launched. Follow native provider prompts; no prompt was sent automatically.');}catch(e){notice(`Launch failed: ${String(e)}`);await refresh();}finally{busy=false;render();if(current()?.id===s.id&&active(current())){const t=terminal(current());t.term.focus();t.host.scrollIntoView({block:'nearest',inline:'nearest'});}}};
   $('live-stop').onclick=async()=>{const s=current();if(!s||busy)return;busy=true;mutation++;render();try{await invoke('live_stop',{id:s.id,generation:s.generation});await refresh();notice('Process stopped. Resume will use this saved ID; unsaved terminal input is not replayed.');}catch(e){notice(String(e));}finally{busy=false;render();}};
   function pastePrompt(text){

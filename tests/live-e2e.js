@@ -149,6 +149,14 @@
         await until(async()=>(await output(s)).includes(`ACK remember-${s.label}`),'accepted terminal input stays bound across tab switches');
         await invoke('live_resize',{id:s.id,generation:s.generation,cols:90,rows:30});
       }
+      { // Changes in this project (alpha is a fixture git repository; beta is not)
+        const a=sessions.find(s=>s.project_dir.endsWith('/alpha')),b=sessions.find(s=>s.project_dir.endsWith('/beta'));
+        const r=await invoke('session_changes',{id:a.id});
+        assert(r.branch==='main'&&r.files.some(f=>f.path==='new.txt'&&f.state==='??')&&r.since_s!=null&&r.commits.length===0,'session changes list the untracked file; the commit made before the session started is not counted as since start');
+        let notRepo=false;try{await invoke('session_changes',{id:b.id});}catch(e){notRepo=/not inside a git repository/.test(String(e));}assert(notRepo,'a folder outside git says so');
+        $('show-live').click();await select(a);$('live-changes').open=true;$('live-changes').dispatchEvent(new Event('toggle'));
+        await until(()=>$('live-changes-body').textContent.includes('new.txt')&&$('live-changes-body').textContent.includes('Commits since this session was started'),'changes panel shows the file and the since-start line');
+      }
       { // All-agents overview: observed data only
         $('show-overview').click();
         await until(()=>$('ov-body').children.length===2,'overview lists both registered sessions');
@@ -170,13 +178,49 @@
         assert(!$('ov-stopall').disabled&&/Stop all running \(2\)/.test($('ov-stopall').textContent),'stop-all shows how many are running');
         $('ov-stopall').click();assert(!$('ov-stopall-confirm').hidden&&$('ov-stopall').hidden,'stop-all needs a second confirming click');
         $('ov-stopall-cancel').click();assert($('ov-stopall-confirm').hidden&&!$('ov-stopall').hidden,'stop-all can be cancelled');
+        { // Resume state and handoff
+          await until(()=>$('rs-body').children.length===2,'resume-state table lists both sessions');
+          assert([...$('rs-body').children].every(r=>/No notes/.test(r.children[2].textContent)),'a folder with no notes files says so');
+          const row=[...$('rs-body').children].find(r=>r.children[0].textContent.toLowerCase().includes('alpha'));
+          row.querySelector('button').click();
+          await until(()=>$('rs-text').value.includes('# Handoff:')&&$('rs-text').value.includes('branch main')&&$('rs-text').value.includes('new.txt'),'handoff note built from state and git changes');
+          const h=$('rs-text').value;
+          assert(h.includes('## Not included')&&h.includes('No notes files were visible')&&!/MUST-NOT-SEND|SECRET/.test(h),'handoff has no conversation content and says what is not included');
+          $('rs-target').value='Codex';$('rs-target').dispatchEvent(new Event('change'));assert($('rs-text').value.includes('AGENTS.md'),'handoff names the rules file of the receiving agent');
+          $('rs-save').click();
+          await until(async()=>(await invoke('notes_list',{query:'Handoff'})).some(n=>n.shelf==='Handoffs'&&n.title.startsWith('Handoff ')),'handoff saved to the Notes library');
+          { // Consent-gated write into the project folder (alpha is a fixture folder)
+            $('rs-project').click();
+            await until(()=>$('pw-dialog').open&&$('pw-session').options.length===2,'consent dialog lists the registered sessions');
+            const alpha=[...$('pw-session').options].find(o=>o.textContent.includes('/alpha'));$('pw-session').value=alpha.value;
+            assert($('pw-write').disabled,'write is disabled before a preview');
+            $('pw-preview').click();await until(()=>!$('pw-write').disabled,'preview enables writing');
+            assert(/does not exist yet/.test($('pw-info').textContent),'preview says the file will be created');
+            const sid=alpha.value,text='# Handoff fixture\n';
+            let denied=false;try{await invoke('project_file_write',{id:sid,name:'HANDOFF.md',content:text,expectedHash:'',backup:true,confirm:false});}catch(e){denied=/confirmation/.test(String(e));}assert(denied,'the backend refuses a write without confirm');
+            let badName=false;try{await invoke('project_file_preview',{id:sid,name:'../x.md',content:text});}catch(e){badName=true;}assert(badName,'a name outside the fixed list is refused');
+            assert(!$('pw-new-wrap').hidden&&$('pw-new').value.startsWith('# Handoff:'),'the dialog shows the text that will be written');
+            $('pw-write').click();assert(/^Confirm: write/.test($('pw-write').textContent),'writing needs a second confirming click');
+            $('pw-write').click();await until(()=>/^Written:/.test($('pw-info').textContent),'file written after the second click');
+            const p1=await invoke('project_file_preview',{id:sid,name:'HANDOFF.md',content:'# Changed\n'});
+            assert(p1.exists&&p1.current_text.includes('# Handoff')&&!p1.same,'preview of an existing file shows its current text');
+            let stale=false;try{await invoke('project_file_write',{id:sid,name:'HANDOFF.md',content:'# Changed\n',expectedHash:'0'.repeat(64),backup:true,confirm:true});}catch(e){stale=/Preview this exact/.test(String(e));}assert(stale,'a write that does not match the last preview is refused');
+            let noPreview=false;try{await invoke('project_file_write',{id:sid,name:'HANDOFF.md',content:'# Changed\n',expectedHash:p1.current_hash,backup:true,confirm:true});}catch(e){noPreview=/Preview this exact/.test(String(e));}assert(noPreview,'a preview is valid for one write only');
+            const p2=await invoke('project_file_preview',{id:sid,name:'HANDOFF.md',content:'# Changed\n'});
+            const w=await invoke('project_file_write',{id:sid,name:'HANDOFF.md',content:'# Changed\n',expectedHash:p2.current_hash,backup:true,confirm:true});
+            assert(w.backup&&w.backup.endsWith('_HANDOFF.md'),'the old file was backed up');
+            $('pw-cancel').click();assert(!$('pw-dialog').open,'dialog closes');
+          }
+          $('rs-close').click();assert($('rs-handoff').hidden,'handoff panel closes');
+        }
         await until(async()=>{const r=await invoke('time_report');return r.length>=2&&r.every(x=>x.all_running_ms>0);},'time per project is recorded for both projects');
         await until(()=>$('ov-time-body').children.length>=2,'time per project card lists both projects');
         assert($('ov-time-body').textContent.includes('min'),'durations are shown');
         $('show-flow').click();
+        await until(()=>$('flow-tl-body').children.length>=1,'flow lists recent activity');assert(/started|quiet|finished|stopped/.test($('flow-tl-body').textContent),'activity rows describe a state change');
         await until(()=>$('flow-svg').querySelectorAll('.flow-sess').length===2,'flow shows both registered sessions');
         assert($('flow-svg').querySelectorAll('.flow-prov').length===2&&$('flow-svg').querySelectorAll('.flow-sess[data-state=running]').length===2,'flow shows two providers and both sessions running');
-        assert(!/approv|waiting for (a )?decision/i.test($('flow').textContent.replace(/approvals are made[^.]*\./i,'')),'flow shows no approval state');
+        const fc=$('flow').cloneNode(true);fc.querySelector('#board-card')?.remove();fc.querySelector('#queues-card')?.remove();assert(!/approv|waiting for (a )?decision/i.test(fc.textContent.replace(/approvals are made[^.]*\./i,'')),'flow shows no approval state (the process diagram and activity; the board and queue cards explain that they are data)');
         $('show-live').click();
       }
       assert((await snapshot()).filter(s=>s.status==='running').length===2,'two project sessions coexist');
@@ -186,8 +230,18 @@
       report('phase','live-first-preview');
     }else{
       assert(sessions.length===2&&sessions.every(s=>s.attempted&&s.status!=='running'),'metadata restored without relaunch');
+      $('show-live').click();
+      report('check','restart statuses '+sessions.map(s=>s.status).join(','));
+      const intr=sessions.filter(s=>s.status==='interrupted');
+      if(intr.length){
+        await until(()=>!$('live-resume').hidden&&$('live-resume').querySelectorAll('[data-resume]').length===intr.length,'resume panel lists the interrupted sessions');
+        assert(/Nothing was restarted/.test($('live-resume').textContent),'resume panel says nothing was restarted');
+        assert(!$('live-resume-all').disabled===(intr.length>1),'resume all needs two or more');
+        report('check','resume panel shown for '+intr.length);
+      }
       for(const saved of sessions){
-        await select(saved);await until(()=>!$('live-start').disabled,'resume enabled');assert($('live-start').textContent.includes('Resume'),'explicit resume action');$('live-start').click();
+        await select(saved);await until(()=>!$('live-start').disabled,'resume enabled');assert($('live-start').textContent.includes('Resume'),'explicit resume action');
+        const rb=document.querySelector(`[data-resume="${saved.id}"]`);if(rb)rb.click();else $('live-start').click();
         await until(async()=>(await snapshot()).find(s=>s.id===saved.id).status==='running','resume launched');
         const s=(await snapshot()).find(s=>s.id===saved.id);
         assert(s.generation!==saved.generation,'fresh generation after resume');

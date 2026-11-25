@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-queues-view"
+description = "Enables the queues_view command without any pre-configured scope."
+commands.allow = ["queues_view"]
+
+[[permission]]
+identifier = "deny-queues-view"
+description = "Denies the queues_view command without any pre-configured scope."
+commands.deny = ["queues_view"]

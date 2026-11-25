@@ -127,3 +127,39 @@ sequenceDiagram
   UI->>N: bundle_import(name, include_settings)
   N->>S: add pages as new (clash gets " (imported)"); replace preferences only if asked
 ```
+
+## 6. Agent signals to the "Needs you" list, desktop and webhooks
+
+```mermaid
+sequenceDiagram
+  participant H as Claude hook, Codex notify, status line (person's own settings)
+  participant F as signals/ files
+  participant M as notify.rs monitor (every 30 s)
+  participant UI as overview.js, flow.js
+  participant N as notify-send and curl
+  H->>F: append one JSON line (or rewrite claude-limits.json)
+  M->>F: read new complete lines only (symlinks refused, caps, redaction)
+  M->>M: also compares session activity (quiet 10 min, ended, started) and plan-limit percentages against the saved threshold
+  M->>M: dedupe, then record in memory (needs-you list, timeline)
+  M->>N: desktop notification (if switched on) and webhooks that chose the event
+  UI->>M: attention_list, timeline_list, claude_limits_status (read only)
+```
+
+Nothing here answers or approves a prompt. A Claude "waiting" line, a finished Codex turn and a plan-limit percentage are data that the agent tool reported. Plan-limit alerts go first in a tick and a window already over the threshold at app start is not alerted again.
+
+## 7. Resume after a restart
+
+```mermaid
+sequenceDiagram
+  participant SM as SessionManager (open)
+  participant UI as live.js
+  participant L as live.rs
+  SM->>SM: running and launching sessions become interrupted
+  UI->>L: live_snapshot
+  UI->>UI: Resume panel lists the interrupted sessions (nothing started)
+  UI->>L: live_start(id) after a click (Resume all needs a second click)
+  L->>SM: start: exact saved ID, claude --resume or codex resume, own folder
+  L->>L: remember the start time for "Changes in this project"
+```
+
+No input is replayed. The same checks as the Start button apply (CLI inspected, saved ID present), and `SessionManager::start` repeats them.

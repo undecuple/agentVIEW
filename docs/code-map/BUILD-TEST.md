@@ -17,7 +17,7 @@ Run Nix-based commands from the repository root inside the development shell, fo
 ## Scripts
 
 - **Aggregates and static checks:** `check-foundation.sh` (16 steps: Python tests, icon and art checks, Rust checks, the sandbox e2e, the workspace, live and settings GUI tests, a normal build), `check-rust.sh`, `check-history.sh` (author and committer identity, forbidden message lines, file scan per commit), `scan-files.sh <rev>` (reads NUL-separated paths on stdin; blocks keys, archives, databases, files over 1 MiB and secret-shaped text), `check-release-binary.sh` (the release binary must contain none of the test hooks), `e2e.sh` (webview sandbox assertions).
-- **GUI tests** (real WebKit under Xvfb; debug build with `--features workspace-e2e`; each uses a fresh evidence directory and synthetic data): `test-git.sh` (synthetic repository), `test-rclone.sh` (fake rclone program), `test-webhook.sh` (fake curl program), `test-hook-signal.sh` (Claude hook signal to a webhook, fake curl), `make-screenshots.sh` (regenerates the preview PNGs from synthetic data), `test-workspace.sh` (twice against one database; also the denied-command probe), `test-settings.sh`, `test-live.sh` and `test-live-cancel.sh` (use `tests/live-cli-fixture.py` as a fake CLI), `test-review.sh`, `test-notes.sh`, `test-claude-config.sh` (synthetic state file with fake secrets), `test-overlap.sh`.
+- **GUI tests** (real WebKit under Xvfb; debug build with `--features workspace-e2e`; each uses a fresh evidence directory and synthetic data): `test-git.sh` (synthetic repository), `test-rclone.sh` (fake rclone program), `test-webhook.sh` (fake curl program), `test-hook-signal.sh` (Claude and Codex signals and plan limits to a webhook and the "Needs you" list, fake curl and fake notify-send), `make-screenshots.sh` (regenerates the preview PNGs from synthetic data), `test-workspace.sh` (twice against one database; also the denied-command probe), `test-settings.sh`, `test-live.sh` and `test-live-cancel.sh` (use `tests/live-cli-fixture.py` as a fake CLI; the live test also simulates a crash to check the Resume panel, uses a fixture git repository for "Changes in this project" and checks the Flow activity table), `test-review.sh`, `test-notes.sh`, `test-claude-config.sh` (synthetic state file with fake secrets), `test-overlap.sh`.
 - **CI helper:** `install-ci-nix.sh` installs a pinned Nix in CI runners (aborts anywhere else).
 - **Packaging:** `build-appimage.sh` (portable build in a container), `build-appimage-nixos.sh` (standalone NixOS build, local only), `test-agentview-appimage.sh`, `test-appimage.sh`, `test-appimage-nixos.sh`, `package-source.sh`, `test-niri.sh` with `niri-smoke.py`.
 - **Python tools:** `release.py`, `pre-pr-check.py`, `init-repo.py`, `make-icon.py`, `make-readme-assets.py`.
@@ -32,7 +32,7 @@ The two Cargo features are `e2e` (sandbox test page and report endpoint) and `wo
 
 ## Test counts (at the time of writing)
 
-Python 78 tests in 5 files. Rust: `core` 26, `workspace` 22, `sessions` 35, `src-tauri` 3. Eight embedded JavaScript GUI test files in `tests/`.
+Python 83 tests in 5 files. Rust: `core` 26, `workspace` 27, `sessions` 35, `src-tauri` 26. Fourteen embedded JavaScript GUI test files in `tests/`.
 
 ## Nix, packaging and CI
 
@@ -41,3 +41,5 @@ Python 78 tests in 5 files. Rust: `core` 26, `workspace` 22, `sessions` 35, `src
 - `.github/workflows/ci.yml`: one `checks` job on every push and pull request: history and file scan, the Python tests, then `check-rust.sh` in the Nix shell. It does not run the GUI scripts.
 - `.github/workflows/release.yml`: on version tags or manual dispatch; runs `check-foundation.sh`, builds the source archive and AppImage, tests it, and can create a **draft** release only.
 - `.githooks/pre-commit` scans staged files with `scan-files.sh`. Enable once with `git config core.hooksPath .githooks`.
+
+`scripts/test-queue-adapter.sh` checks the queue adapter against a fixture lock folder (needs `jq`; no app).
