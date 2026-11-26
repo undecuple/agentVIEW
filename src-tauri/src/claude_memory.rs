@@ -38,6 +38,7 @@ fn resolve(key: &str, cfg: &Config) -> Option<(PathBuf, String)> {
 #[tauri::command]
 pub fn claude_memory_list(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>) -> Result<Vec<MemEntry>, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let r = root().ok_or("Home folder unknown")?;
     let mut out: Vec<MemEntry> = Vec::new();
     let mut add = |key: String, group: String, name: String, path: &std::path::Path| {
@@ -64,6 +65,7 @@ pub fn claude_memory_list(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Co
 #[tauri::command]
 pub fn claude_memory_read(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, key: String) -> Result<MemFile, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let (path, name) = resolve(&key, &cfg).ok_or("That file is not available")?;
     let len = std::fs::metadata(&path).map_err(|_| "Unreadable")?.len();
     let text = read_head(&path, READ_CAP).ok_or("Unreadable")?;

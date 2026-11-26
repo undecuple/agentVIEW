@@ -85,6 +85,7 @@ fn repos(cfg: &Config) -> Vec<PathBuf> {
 #[tauri::command]
 pub fn git_repos(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>) -> Result<Vec<RepoEntry>, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     Ok(repos(&cfg).into_iter().take(50).map(|p| { let s = p.to_string_lossy().into_owned(); RepoEntry { name: policy::short(&s), path: s } }).collect())
 }
 
@@ -120,6 +121,7 @@ fn parse_status(raw: &[u8]) -> (String, Option<String>, Option<u32>, Option<u32>
 #[tauri::command]
 pub fn git_status(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, path: String) -> Result<RepoView, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let repo = repos(&cfg).into_iter().find(|p| p.to_string_lossy() == path).ok_or("That folder is not a repository containing an allowed path")?;
     if config_runs_commands(&repo) { return Err(UNSAFE_CONFIG.into()); }
     let raw = git(&repo, &["status", "--porcelain=v2", "--branch", "-z", "--untracked-files=normal"]).ok_or("git status failed or timed out")?;
