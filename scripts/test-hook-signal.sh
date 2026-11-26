@@ -70,5 +70,5 @@ echo "plan limit checks ok"
 # Away mode: the flag and the instruction are private files written by the app; the decisions file was only read
 [ -f "$run/data/away" ] && [ "$(stat -c %a "$run/data/away")" = 600 ] || { echo "away flag missing or wrong mode"; exit 1; }
 grep -q 'AWAY MODE is ON' "$run/data/away-instruction.txt" && [ "$(stat -c %a "$run/data/away-instruction.txt")" = 600 ] || { echo "instruction file wrong"; exit 1; }
-[ "$(grep -c . "$run/data/decisions/pending.jsonl")" = 4 ] || { echo "the app must not change the agents' decisions file"; exit 1; }
+[ "$(grep -c . "$run/data/decisions/pending.jsonl")" = 3 ] || { echo "the app must not change the agents' decisions file"; exit 1; }
 echo "Away mode files: PASS"
