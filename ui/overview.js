@@ -76,7 +76,7 @@
     {const runningRows=rows.filter(a=>a.running);let out=0;for(const a of runningRows)out+=(prev.get(a.id)||{out:0}).out;
      let tk=0,any=false;for(const a of rows){const v=tokens.get(a.id);if(v!=null){tk+=v;any=true;}}
      $('st-running').textContent=String(runningRows.length);$('st-running-sub').textContent=`of ${rows.length} registered`;
-     const nAttn=need.length+sig.length;$('st-attention').textContent=String(nAttn);$('st-attention').dataset.bad=String(nAttn>0);
+     const nAttn=need.length+sig.length;$('st-attention').textContent=String(nAttn);$('st-attention').dataset.bad=String(nAttn>0);if(window.AppNav)AppNav.setCount('overview',nAttn);
      $('st-flow').textContent=`${fmtB(out)}/s`;spark(out);bars(rows);$('st-tokens').textContent=any?fmtN(tk):'—';}
     const running=rows.filter(a=>a.running).length;
     $('ov-stopall').disabled=!running;$('ov-stopall').textContent=running?`Stop all running (${running})`:'Stop all running';

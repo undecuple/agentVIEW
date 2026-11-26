@@ -47,13 +47,13 @@
     remember(patch){if(snapshot?.settings.remember_filters&&!snapshot.recovery){Object.assign(pendingFilters,patch);clearTimeout(filterTimer);filterTimer=setTimeout(()=>{const next=pendingFilters;pendingFilters={};if(!snapshot?.settings.remember_filters)return;this.patch(next).catch(e=>banner(`Filters were not saved: ${String(e)}`));},200);}},
     ready:null,
   };
-  window.AppNav={navigate(page){
-    if(!['agents','sessions','overview','flow','docs','notes','cc','git','review','usage','settings'].includes(page))return;
+  window.AppNav={setCount(name,n){const el=document.getElementById('nc-'+name);if(!el)return;const v=Number.isSafeInteger(n)&&n>0?n:0;el.textContent=String(v);el.hidden=!v;},navigate(page){
+    if(!['agents','welcome','sessions','overview','flow','docs','notes','cc','git','review','usage','settings'].includes(page))return;
     if(page==='agents'&&document.body.dataset.demo!=='true')page='sessions';
-    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['flow','flow'],['docs','docs'],['notes','notes'],['cc','cc'],['git','git'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
+    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['flow','flow'],['welcome','welcome'],['docs','docs'],['notes','notes'],['cc','cc'],['git','git'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
     for(const selector of ['.page-heading','.summary','.demo-note'])document.querySelector(selector).hidden=page!=='agents';
-    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',flow:'Flow',docs:'Documents',notes:'Notes',cc:'Claude config',git:'Git',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
-    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',flow:'PROCESS STATUS',docs:'READ-ONLY DOCUMENTS',notes:'APP-OWNED NOTES',cc:'READ-ONLY',git:'READ-ONLY GIT',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
+    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',flow:'Flow',welcome:'Welcome',docs:'Documents',notes:'Notes',cc:'Claude config',git:'Git',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
+    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',flow:'PROCESS STATUS',welcome:'GET STARTED',docs:'READ-ONLY DOCUMENTS',notes:'APP-OWNED NOTES',cc:'READ-ONLY',git:'READ-ONLY GIT',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
     for(const [id,key] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-docs','docs'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings']]){
       const button=document.getElementById(id);button.classList.toggle('active',page===key);if(page===key)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     }

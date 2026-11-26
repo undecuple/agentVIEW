@@ -172,6 +172,32 @@ details.muted>summary{font-weight:500;color:var(--muted);font-size:.875rem}
 #docs-filter{max-width:220px}#docs-add-form{margin-top:var(--s3)}#docs-confirm{margin-top:var(--s3)}#docs-confirm-text{margin:0;overflow-wrap:anywhere}
 #docs-view-body{overflow-wrap:anywhere}#docs-view-body pre{white-space:pre-wrap}
 
+/* Form rows: the label sits above its field, every control shares one baseline and one height, an empty select is not a sliver */
+.inline-form,.settings-actions{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-end}
+.inline-form>label:not(.check-label):not(:has(>input[type=checkbox])),.settings-actions>label{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:.8125rem;color:var(--muted)}
+.inline-form select,.settings-actions select{min-width:min(14rem,100%)}
+.inline-form input:not([type=checkbox]):not([type=radio]),.inline-form select,.settings-actions select{height:44px;box-sizing:border-box}
+.inline-form>button,.settings-actions>button{min-height:36px}
+.settings-save{margin-top:var(--s4)}
+
+/* Table headers keep their words whole (a column that is too narrow scrolls inside its card instead of breaking "TOKENS" into "TOK ENS") */
+.overview-panel th,.q-block th,.usage-panel th{white-space:nowrap}
+.overview-panel td:last-child,.overview-panel th:last-child{min-width:5.5rem}
+
 /* Terminal copy and paste bar */
 .term-tools{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:var(--s3) 0 var(--s2)}
 .term-tools button{min-height:32px;padding:4px 12px}.term-tools .check-label{margin-left:var(--s2);font-size:.8125rem}
+
+/* Page heads and panel tags (after the re-psn desktop app): a small label above a large title; panels carry a short tag */
+.page-head h2{font-size:1.75rem;line-height:1.2;margin-top:2px}
+.page-head .eyebrow{margin:0}
+.card-head .chip{margin-left:var(--s2)}
+.nav-count{margin-left:auto;min-width:20px;padding:1px 7px;text-align:center;font-size:.75rem;font-weight:600;color:var(--accent);border:1px solid var(--line-strong);border-radius:999px;background:transparent}
+body[data-rail=collapsed] .nav-count{display:none}
+.stat-link{cursor:pointer}.stat-link:hover{border-color:var(--accent)}.stat-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Welcome page */
+.welcome .role-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--s4);margin-top:var(--s4)}
+.role-card{display:flex;flex-direction:column;gap:var(--s2);align-items:flex-start;text-align:left;padding:var(--s5);border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);font:inherit;color:inherit;cursor:pointer}
+.role-card:hover,.role-card:focus-visible{border-color:var(--accent)}
+.role-card strong{font-size:1.125rem}.role-card .card-number{font-size:.75rem;letter-spacing:.06em;color:var(--muted)}
+.role-card span:last-child{color:var(--muted);font-size:.875rem}
