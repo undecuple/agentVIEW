@@ -50,10 +50,13 @@ pub fn validate_url(url: &str) -> Result<String> {
         return Err("The host name is not valid".into());
     }
     if let Ok(ip) = host.parse::<Ipv4Addr>() {
-        if ip.is_private() || ip.is_loopback() || ip.is_link_local() || ip.is_unspecified() || ip.is_broadcast() || ip.octets()[0] == 100 && (64..128).contains(&ip.octets()[1]) { return Err("Local and private network addresses are refused".into()); }
+        if ip.is_private() || ip.is_loopback() || ip.is_link_local() || ip.is_unspecified() || ip.is_broadcast() || ip.is_multicast() || ip.octets()[0] == 0 || ip.octets()[0] >= 240 || ip.octets()[0] == 100 && (64..128).contains(&ip.octets()[1]) || ip.octets()[..3] == [192, 0, 0] || ip.octets()[0] == 198 && (18..20).contains(&ip.octets()[1]) { return Err("Local and private network addresses are refused".into()); }
     } else if !host.contains('.') || host == "localhost" || [".local", ".localhost", ".internal", ".lan", ".home", ".corp"].iter().any(|s| host.ends_with(s)) {
         return Err("Local host names are refused".into());
     } else if host.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
+        return Err("Use a host name or a full IPv4 address".into());
+    } else if !host.rsplit('.').next().is_some_and(|tld| tld.starts_with(|c: char| c.is_ascii_lowercase())) {
+        // curl also reads forms like 0x7f.0.0.1 or 0177.0.0.1 as IPv4 numbers; a real name ends in a letter-led label (a top-level domain).
         return Err("Use a host name or a full IPv4 address".into());
     }
     Ok(host)
@@ -98,7 +101,7 @@ mod tests {
     #[test] fn refuses_unsafe() {
         for bad in ["http://a.example/x", "https://localhost/x", "https://127.0.0.1/x", "https://10.0.0.5/x", "https://192.168.1.1/x", "https://169.254.169.254/x", "https://100.64.0.1/x",
             "https://[::1]/x", "https://user\u{40}a.example/x", "https://a.example/x y", "https://a.example/\"x", "https://a.example/x\\y", "https://intranet/x", "https://printer.local/x",
-            "https://a.example:99999/x", "https://a.example:/x", "https://-a.example/x", "https://a..example/x", "https://123.456/x", "ftp://a.example", ""] {
+            "https://0x7f.0.0.1/x", "https://0177.0.0.1/x", "https://127.1/x", "https://0.1.2.3/x", "https://224.0.0.1/x", "https://198.18.0.1/x", "https://192.0.0.9/x", "https://255.255.255.255/x", "https://a.0x7f/x", "https://a.example:99999/x", "https://a.example:/x", "https://-a.example/x", "https://a..example/x", "https://123.456/x", "ftp://a.example", ""] {
             assert!(validate_url(bad).is_err(), "{bad}");
         }
     }
