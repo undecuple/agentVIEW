@@ -62,6 +62,7 @@
     if(document.activeElement!==$('live-rename'))$('live-rename').value=s?s.label:'';
     $('live-rename').disabled=!stopped;$('live-rename-save').disabled=!stopped;
     $('live-remove').disabled=!stopped;
+    for(const id of ['term-copy-sel','term-copy-last','term-copy-all'])$(id).disabled=!s;$('term-paste').disabled=!s||!active(s);
     $('live-remote').hidden=!claude;
     if(!claude)return;
     const on=!!s.remote_control;
@@ -86,6 +87,15 @@
     const fit=new FitAddon.FitAddon();term.loadAddon(fit);term.open(host);
     // No link addon, clipboard integration, title handler or HTML interpretation.
     term.parser.registerOscHandler(52,()=>true);
+    // Copy and paste are explicit keys or buttons. The terminal itself never writes to the clipboard on its own (OSC 52 stays blocked above).
+    term.attachCustomKeyEventHandler(ev=>{
+      if(ev.type==='keydown'&&ev.ctrlKey&&ev.shiftKey&&!ev.altKey&&!ev.metaKey){
+        if(ev.code==='KeyC'){ev.preventDefault();copySelection();return false;}
+        if(ev.code==='KeyV'){ev.preventDefault();pasteFromClipboard();return false;}
+      }
+      return true;
+    });
+    term.onSelectionChange(()=>{if($('term-copy-on-select').checked&&term.hasSelection())copyText(term.getSelection()).then(ok=>termNote(ok?'Copied the selection.':'Could not copy; press Ctrl+Shift+C.'));});
     term.parser.registerOscHandler(8,()=>true);
     const t={id:s.id,generation:s.generation,term,fit,host,offset:0,input:Promise.resolve(),pending:0};terminals.set(key,t);
     term.onData(data=>{
@@ -153,6 +163,37 @@
   new MutationObserver(()=>{if(current()?.id!==chgFor){chgFor=current()?.id;loadChanges();}}).observe($('live-roster'),{childList:true,subtree:true,attributes:true});
   $('live-start').onclick=async()=>{const s=current();if(!s||busy)return;busy=true;mutation++;render();notice(`Starting ${providerName(s.provider)}; waiting for native session setup. Closing cancels startup.`);try{const started=await invoke('live_start',{id:s.id});sessions=sessions.map(item=>item.id===s.id?started:item);$('live-setup').open=false;notice('Process launched. Follow native provider prompts; no prompt was sent automatically.');}catch(e){notice(`Launch failed: ${String(e)}`);await refresh();}finally{busy=false;render();if(current()?.id===s.id&&active(current())){const t=terminal(current());t.term.focus();t.host.scrollIntoView({block:'nearest',inline:'nearest'});}}};
   $('live-stop').onclick=async()=>{const s=current();if(!s||busy)return;busy=true;mutation++;render();try{await invoke('live_stop',{id:s.id,generation:s.generation});await refresh();notice('Process stopped. Resume will use this saved ID; unsaved terminal input is not replayed.');}catch(e){notice(String(e));}finally{busy=false;render();}};
+  async function copyText(text){
+    try{await navigator.clipboard.writeText(text);return true;}catch{}
+    const t=document.createElement('textarea');t.value=text;t.setAttribute('readonly','');t.style.cssText='position:fixed;left:-9999px;top:0';document.body.append(t);t.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch{}t.remove();return ok;
+  }
+  let termNoteTimer=null;
+  function termNote(text){const n=$('term-note');n.textContent=text;clearTimeout(termNoteTimer);termNoteTimer=setTimeout(()=>{n.textContent='';},4000);}
+  // The text of the terminal buffer; a line the terminal wrapped is joined back into one line so copied commands and paths stay whole.
+  function bufferText(term,lastLines){
+    const b=term.buffer.active,n=b.length,start=lastLines?Math.max(0,n-lastLines):0,out=[];
+    for(let i=start;i<n;i++){const l=b.getLine(i);if(!l)continue;const t=l.translateToString(true);if(l.isWrapped&&out.length)out[out.length-1]+=t;else out.push(t);}
+    while(out.length&&!out[out.length-1].trim())out.pop();
+    return out.join('\n');
+  }
+  async function copyWith(get,empty,done){
+    const s=current();if(!s)return;const t=terminal(s);const text=get(t.term);
+    if(!text){termNote(empty);return;}
+    termNote(await copyText(text)?done:'Could not copy. Select the text and press Ctrl+Shift+C.');t.term.focus();
+  }
+  const copySelection=()=>copyWith(term=>term.hasSelection()?term.getSelection():'','Select some text in the terminal first.','Copied the selection.');
+  async function pasteFromClipboard(){
+    const s=current();if(!s||!active(s))return;const t=terminal(s);let text='';
+    try{text=await navigator.clipboard.readText();}catch{termNote('The clipboard cannot be read here. Press Ctrl+V inside the terminal instead.');t.term.focus();return;}
+    if(text)t.term.paste(text);t.term.focus();
+  }
+  $('term-copy-sel').onclick=copySelection;
+  $('term-copy-last').onclick=()=>copyWith(term=>bufferText(term,100),'There is no output yet.','Copied the last 100 lines.');
+  $('term-copy-all').onclick=()=>copyWith(term=>bufferText(term,0),'There is no output yet.','Copied all output kept in the terminal.');
+  $('term-paste').onclick=pasteFromClipboard;
+  try{$('term-copy-on-select').checked=localStorage.getItem('agentview.copyOnSelect')==='1';}catch{}
+  $('term-copy-on-select').onchange=()=>{try{localStorage.setItem('agentview.copyOnSelect',$('term-copy-on-select').checked?'1':'0');}catch{}};
   function pastePrompt(text){
     const s=current();if(!active(s)||busy){notice('Select a running coordinator first.');return;}
     if(!text.trim()||text.length>4000||/[\u0000-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2060\u2028-\u202e\u2066-\u2069\ufeff]/.test(text)){notice('Use a single-line prompt without control characters.');return;}
