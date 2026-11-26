@@ -10,6 +10,16 @@
     await AppPrefs.patch({demo_mode:true});await until(()=>document.body.dataset.demo==='true','demo workspace enabled for this test');AppNav.navigate('agents');
     if(TEST_NARROW)assert(window.innerWidth<=800,'narrow viewport exercised');
     assert($('show-docs').getClientRects().length>0&&$('show-usage').getClientRects().length>0,'documents and usage navigation remain visible');
+    {
+      // Sidebar counts, Overview tile links and the first-run welcome page.
+      AppNav.setCount('docs',3);assert(!$('nc-docs').hidden&&$('nc-docs').textContent==='3','a count badge shows its number');AppNav.setCount('docs',0);assert($('nc-docs').hidden,'a zero count is hidden');
+      AppNav.navigate('overview');assert(document.querySelector('#ov-stats .stat-link[data-go="usage"]'),'Overview tiles link to their pages');
+      document.querySelector('#ov-stats .stat-link[data-go="usage"]').click();await until(()=>!$('usage').hidden,'an Overview tile opens its page');
+      AppWelcome.show();assert(!$('welcome').hidden&&document.querySelectorAll('[data-welcome]').length===3,'the welcome page offers three starting points');
+      document.querySelector('[data-welcome="notes"]').click();await until(()=>!$('notes').hidden,'a welcome card opens its page');
+      assert(localStorage.getItem('agentview.welcomeSeen')==='1','choosing marks the welcome as seen');
+      AppNav.navigate('agents');
+    }
     assert(document.querySelectorAll('.agent-row').length===8,'both intake trees and selected project descendants rendered');
     $('project-filter').value='';$('project-filter').dispatchEvent(new Event('input'));
     assert(document.querySelectorAll('.agent-row').length===14,'all projects available');
