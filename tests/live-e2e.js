@@ -70,7 +70,7 @@
       const missing=(await invoke('usage_snapshot')).sessions.find(s=>s.provider==='codex');
       assert(missing.status==='missing'&&missing.totals.total_tokens===195&&missing.last_measured_at===x.last_measured_at,'missing source retains historical numbers without a fresh measurement');
       const missingRow=$('usage-agents').querySelector(`[data-session="${x.app_session_id}"]`);
-      assert(missingRow.textContent.includes('Source missing; saved values retained')&&missingRow.cells[5].textContent==='195'&&missingRow.textContent.includes(x.last_measured_at),'missing source renders retained values and measurement time honestly');
+      assert(missingRow.textContent.includes('Its log file was not found (it may not have had a reply yet); saved values kept')&&missingRow.cells[5].textContent==='195'&&missingRow.textContent.includes(x.last_measured_at),'missing source renders retained values and measurement time honestly');
       await invoke('live_write',{id:live.id,generation:live.generation,data:'/fixture-usage-restore\r'});
       await until(async()=>(await output(live)).includes('USAGE RESTORED'),'fixture source restored');
       $('usage-refresh').click();await until(()=>$('usage-notice').textContent.includes('Local check complete'),'restored source UI refresh');

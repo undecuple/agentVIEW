@@ -55,9 +55,11 @@ fn claude_coherent_revisions_deduplicate_normalize_and_do_not_store_content(){
     let mut f=Fixture::new();let r=f.record(Provider::Claude);let path=f.path(&r);
     let rows=vec![claude(&r,"message-1","2026-11-21",10,20,3),claude(&r,"message-1","2026-11-21",12,25,4),
         claude(&r,"message-2","2026-11-22",20,30,5)];write(&path,&rows);
-    let measured=f.refresh();assert_eq!(measured.status,"partial");assert_eq!(measured.totals.input_tokens,Some(96));
+    let measured=f.refresh();assert_eq!(measured.status,"ok");assert_eq!(measured.totals.input_tokens,Some(96));
     assert_eq!(measured.totals.cached_input_tokens,Some(55));assert_eq!(measured.totals.cache_creation_input_tokens,Some(9));
-    assert_eq!(measured.totals.output_tokens,None);assert_eq!(measured.totals.total_tokens,None);
+    // Output is the logged figure (the largest per message, here 1 + 1), shown to the person as "at least"; the total adds it to the input.
+    assert_eq!(measured.totals.output_tokens,Some(2));assert_eq!(measured.totals.total_tokens,Some(98));
+    assert_eq!(measured.daily[0].totals.total_tokens,Some(42));assert_eq!(measured.daily[1].totals.total_tokens,Some(56));
     assert_eq!(measured.daily[0].totals.input_tokens,Some(41));assert_eq!(measured.daily[1].totals.input_tokens,Some(55));
     assert_eq!(f.refresh().totals,measured.totals);
     let metadata=fs::read(f.base.join("metadata/sessions.sqlite3")).unwrap();
