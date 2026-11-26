@@ -171,3 +171,7 @@ details.muted>summary{font-weight:500;color:var(--muted);font-size:.875rem}
 .docs-file:hover:not(:disabled){background:var(--surface-2,rgba(127,127,127,.12))}.docs-file:disabled{opacity:.55}
 #docs-filter{max-width:220px}#docs-add-form{margin-top:var(--s3)}#docs-confirm{margin-top:var(--s3)}#docs-confirm-text{margin:0;overflow-wrap:anywhere}
 #docs-view-body{overflow-wrap:anywhere}#docs-view-body pre{white-space:pre-wrap}
+
+/* Terminal copy and paste bar */
+.term-tools{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;margin:var(--s3) 0 var(--s2)}
+.term-tools button{min-height:32px;padding:4px 12px}.term-tools .check-label{margin-left:var(--s2);font-size:.8125rem}
