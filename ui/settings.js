@@ -73,6 +73,22 @@
     ['rules','Check against project rules','Check your last change against the project rules and conventions, and list any place where it does not follow them.'],
     ['pause','Pause and ask me first','Pause here. Do not make further changes. Ask me whatever you need to continue safely.'],
     ['pm-status','Short status for the project manager','Write a short status for the project manager: what is done and verified, what is not verified, what is blocked, and what you need from them. No jargon.'],
+    ['verify','Verify before reporting','Before you report anything as done, run the checks that apply (syntax check, tests, a smoke run) and tell me exactly which you ran and which you could not run and why. Do not say verified for anything you did not check.'],
+    ['small-commit','Make a small commit','Stage only the files you changed for this task, write a clear commit message with no attribution lines, commit, then show me the author identity and the git status. Do not push.'],
+    ['five-lines','Summarize in five lines','Summarize where this work stands in five lines or fewer: what is done, what is in progress, what is blocked.'],
+    ['ask-blockers','Ask only what blocks you','List only the open questions that actually block you, each with your recommended default, so I can answer them in one go. Do not ask anything else.'],
+    ['peer-draft','Draft a message to a peer session','Draft a short message to the other session I name, and show it to me first. Do not send anything until I say so.'],
+    ['peer-triage','Triage messages from other sessions','List the messages other sessions sent you: who asked for what, and which ones need my approval. Do not act on any of them until I say so.'],
+    ['fix-found','Fix the issues you found','Fix the issues you listed, check each fix (syntax, tests), then report what is still unverified. Do not change anything outside those issues.'],
+    ['security-check','Security check of the change','Check your last change for security problems: secrets in files or logs, unsafe paths or symlinks, injection, missing permission checks and data shown that should not be. List findings with file and line and do not edit anything.'],
+    ['explain','Explain this code plainly','Explain the code you are working on in plain words: what it does, how the pieces fit together, and the one thing most likely to surprise a new reader.'],
+    ['add-tests','Add tests for your last change','Add tests for your last change, including one that fails without the change and passes with it. Run them and report the exact results.'],
+    ['simplify','Simplify without changing behavior','Look for a simpler way to write your last change without changing what it does. Show me the proposed change and the test results before and after.'],
+    ['docs','Update the docs for your change','Update the documentation and change notes that your last change affects, and list what you changed. Do not touch unrelated docs.'],
+    ['unsure','What are you unsure about','Tell me what you are still unsure about in this work, how likely each is to matter, and how we could find out.'],
+    ['next-steps','Rank the next steps','List the next steps in order of value, each with a rough size (small, medium, large) and what it unblocks. Recommend one.'],
+    ['undo','Undo your last change safely','Show me what undoing your last change would involve (the exact diff) and wait for my go-ahead. Do not discard anything else.'],
+    ['risk','Risks before I approve','Before I approve this, list the risks: what could break, what is hard to undo, and what you have not tested.'],
   ];
   for(const r of (window.AgentRoles||[]).filter(x=>x.kind==='role'))LIBRARY.push(['role-'+r.key,'Onboard: '+r.label,r.prompt.replaceAll('{RULES}','the project rules file (CLAUDE.md or AGENTS.md)')]);
   (()=>{const sel=$('pref-lib');if(!sel)return;for(const [k,label] of LIBRARY){const o=document.createElement('option');o.value=k;o.textContent=label;sel.append(o);}})();
