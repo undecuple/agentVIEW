@@ -317,12 +317,16 @@ fn walk(dir: &Path, cfg: &Config, out: &mut Vec<PathBuf>, depth: usize) {
 fn secret_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| {
-        Regex::new(concat!(
-            r#"(?i)-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"#,
+        regex::RegexBuilder::new(concat!(
+            // A whole key block (BEGIN to END, or to the end of the text when it was cut off); the header alone only when the block is huge.
+            r#"(?is)-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----.{0,12000}?(?:-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----|\z)"#,
+            r#"|-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----|(?i:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"#,
             r#"|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}"#,
             r#"|Bearer +[A-Za-z0-9._~+/=-]{20,}"#,
-            r#"|(?:api[_-]?key|secret|password|token)["' ]*[:=] *["'][^"' ]{12,}["']"#
+            r#"|(?:api[_-]?key|secret|password|token)["' ]*[:=] *["'][^"' ]{12,}["'])"#
         ))
+        .size_limit(64 * 1024 * 1024)
+        .build()
         .unwrap()
     })
 }
