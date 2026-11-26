@@ -5,7 +5,8 @@ cd "$(dirname "$0")/.."
 run=${1:-$(mktemp -d /tmp/agentview-live.XXXXXX)}
 mkdir -p "$run"; run=$(realpath "$run")
 test ! -e "$run/data" || { echo 'Choose fresh evidence directory'; exit 2; }
-mkdir -m700 "$run/data" "$run/config" "$run/alpha" "$run/beta"
+mkdir -m700 "$run/data" "$run/config" "$run/alpha" "$run/beta" "$run/shared"
+printf '# Shared note\nhello docs\n' > "$run/shared/readme.md"; printf 'SECRET=1\n' > "$run/shared/.env"
 printf 'allow = []\n' > "$run/config/allowlist.toml"
 chmod 600 "$run/config/allowlist.toml"
 # alpha is a git repository with one commit and one untracked file, for the "Changes in this project" check

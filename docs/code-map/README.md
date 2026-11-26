@@ -28,7 +28,7 @@ flowchart LR
 | `core` | Read-only path policy, redaction, Markdown renderer, image checks, gate-log parser, and the `viewer://` HTTP router. No workspace dependencies. Only `sys.rs` may use unsafe code (`openat2`, `geteuid`). | `policy::{Config, check_path, read_bytes, redact}`, `router::handle`, `markdown::{render, sha256_hex}`, `images`, `gate::pending` |
 | `sessions` | Claude Code and Codex CLI sessions in a pseudo-terminal, kept in SQLite, plus usage reading and activity. No workspace dependencies. Linux only. | `SessionManager`, `UsageView`, `Activity`, limits `MAX_SESSIONS` 64, `MAX_ACTIVE` 2, `RING_BYTES` 256 KiB |
 | `workspace` | The app's own SQLite store (demo roster and messages, settings, review labels, notes) and the static assets plus content-security policy of the workspace window. | `Store`, `asset()`, `CSP`, `trusted_window()`, `notes`, `reviews`, `settings` |
-| `src-tauri` | The Tauri shell: registers the 71 commands and the two URI schemes, creates windows, wires the other crates together. | `main.rs`, `live.rs`, `settings.rs`, `review.rs`, `notes.rs`, `bundle.rs`, `claude_config.rs`, `gitview.rs`, `rclone.rs`, `notify.rs`, `timelog.rs`, `hooksignal.rs`, `limits.rs`, `projwrite.rs`, `claude_settings.rs`, `claude_memory.rs` |
+| `src-tauri` | The Tauri shell: registers the 76 commands and the two URI schemes, creates windows, wires the other crates together. | `main.rs`, `live.rs`, `settings.rs`, `review.rs`, `notes.rs`, `bundle.rs`, `claude_config.rs`, `gitview.rs`, `rclone.rs`, `notify.rs`, `timelog.rs`, `hooksignal.rs`, `limits.rs`, `projwrite.rs`, `claude_settings.rs`, `claude_memory.rs` |
 
 ## Trust boundary
 
@@ -40,7 +40,7 @@ flowchart TB
   subgraph docs["docs window (viewer://localhost/)"]
     V["read-only viewer pages"]
   end
-  UI -- "71 commands, each checks authorized()" --> Shell["src-tauri"]
+  UI -- "76 commands, each checks authorized()" --> Shell["src-tauri"]
   V -. "no capability: every command denied" .-> Shell
   Shell --> Store[("workspace.sqlite3")]
   Shell --> Sess[("sessions.sqlite3")]

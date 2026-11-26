@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-docs-add"
+description = "Enables the docs_add command without any pre-configured scope."
+commands.allow = ["docs_add"]
+
+[[permission]]
+identifier = "deny-docs-add"
+description = "Denies the docs_add command without any pre-configured scope."
+commands.deny = ["docs_add"]

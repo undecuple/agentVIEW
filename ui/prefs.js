@@ -48,19 +48,19 @@
     ready:null,
   };
   window.AppNav={navigate(page){
-    if(!['agents','sessions','overview','flow','notes','cc','git','review','usage','settings'].includes(page))return;
+    if(!['agents','sessions','overview','flow','docs','notes','cc','git','review','usage','settings'].includes(page))return;
     if(page==='agents'&&document.body.dataset.demo!=='true')page='sessions';
-    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['flow','flow'],['notes','notes'],['cc','cc'],['git','git'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
+    for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['flow','flow'],['docs','docs'],['notes','notes'],['cc','cc'],['git','git'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
     for(const selector of ['.page-heading','.summary','.demo-note'])document.querySelector(selector).hidden=page!=='agents';
-    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',flow:'Flow',notes:'Notes',cc:'Claude config',git:'Git',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
-    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',flow:'PROCESS STATUS',notes:'APP-OWNED NOTES',cc:'READ-ONLY',git:'READ-ONLY GIT',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
-    for(const [id,key] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings']]){
+    document.querySelector('.topbar strong').textContent={agents:'Agents',sessions:'Sessions',overview:'All agents',flow:'Flow',docs:'Documents',notes:'Notes',cc:'Claude config',git:'Git',review:'Pre-PR review',usage:'Usage',settings:'Settings'}[page];
+    document.querySelector('.demo-pill').textContent={agents:'SIMULATED DEMO',sessions:'LOCAL CLI SESSIONS',overview:'LOCAL OBSERVATIONS',flow:'PROCESS STATUS',docs:'READ-ONLY DOCUMENTS',notes:'APP-OWNED NOTES',cc:'READ-ONLY',git:'READ-ONLY GIT',review:'MANUAL REVIEW',usage:'LOCAL USAGE RECORDS',settings:'APP PREFERENCES'}[page];
+    for(const [id,key] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-docs','docs'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings']]){
       const button=document.getElementById(id);button.classList.toggle('active',page===key);if(page===key)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     }
     document.body.dataset.page=page;document.scrollingElement.scrollTop=0;
     window.dispatchEvent(new CustomEvent('agentview:navigate',{detail:page}));
   }};
-  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents'],['close-settings','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
+  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-docs','docs'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents'],['close-settings','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
   media.addEventListener('change',appearance);
   AppPrefs.ready=Promise.all([loaded,dom]).then(([next])=>accept(next)).catch(()=>{banner('Preferences could not be loaded. Built-in defaults are in use.');return null;});
   // Register after other deferred scripts have attached their preference listeners.

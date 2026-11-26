@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-docs-check"
+description = "Enables the docs_check command without any pre-configured scope."
+commands.allow = ["docs_check"]
+
+[[permission]]
+identifier = "deny-docs-check"
+description = "Denies the docs_check command without any pre-configured scope."
+commands.deny = ["docs_check"]

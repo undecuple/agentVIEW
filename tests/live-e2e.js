@@ -254,6 +254,28 @@
         $('live-stop').click();await until(async()=>(await snapshot()).find(x=>x.id===s.id).status==='stopped','explicit stop');
       }
       if(!TEST_LAYOUT)await usageChecks();
+      {
+        // Documents page: add by path with a review step, read in the app, refuse unsafe paths, stop sharing.
+        const shared=`${PROJECT_ROOT}/shared`;const files=()=>[...document.querySelectorAll('#docs-files .docs-file')].map(b=>b.textContent);
+        $('show-docs').click();await until(()=>!$('docs').hidden,'Documents page opens in the main window');
+        assert((await invoke('docs_list')).shared.length===0,'nothing is shared at first');
+        $('docs-path').value='/etc';$('docs-add-form').dispatchEvent(new Event('submit',{cancelable:true}));
+        await until(()=>/system path/.test($('docs-notice').textContent),'a system folder is refused with a reason');
+        $('docs-path').value=shared;$('docs-add-form').dispatchEvent(new Event('submit',{cancelable:true}));
+        await until(()=>!$('docs-confirm').hidden,'the review step appears');
+        assert($('docs-confirm-text').textContent.includes(shared),'the review shows the full resolved path');
+        assert((await invoke('docs_list')).shared.length===0,'reviewing saves nothing');
+        let staleDenied=false;try{await invoke('docs_add',{path:shared,expect:'/somewhere/else'});}catch(e){staleDenied=/changed since/.test(String(e));}
+        assert(staleDenied,'adding with a path other than the reviewed one is refused');
+        $('docs-confirm-add').click();await until(()=>files().some(f=>f.endsWith('readme.md')),'shared folder lists its files');
+        assert(!files().some(f=>f.includes('.env')),'denied file names are not listed');
+        document.querySelector('#docs-files .docs-file').click();
+        await until(()=>!$('docs-view').hidden&&$('docs-view-body').textContent.includes('hello docs'),'the file is read in the app');
+        let denied=false;try{await invoke('docs_read',{path:`${shared}/.env`});}catch(e){denied=true;}assert(denied,'a denied file cannot be read');
+        document.querySelector('#docs-shared button').click();
+        await until(async()=>(await invoke('docs_list')).shared.length===0,'stop sharing removes the entry');
+        $('show-live').click();await until(()=>!$('live').hidden,'back on the Sessions page');
+      }
       $('open-docs').click();
       await until(()=>new Promise(resolve=>{const script=document.createElement('script');script.src='/__workspace-docs-status.js';script.onload=()=>{script.remove();resolve(window.__docsDenied);};document.head.append(script);}),'document window denies session commands');
       report('phase','live-restart-preview');

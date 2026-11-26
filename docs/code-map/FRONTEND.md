@@ -53,3 +53,5 @@ Setting values: `dark` (Calm Dark, the default), `light` (Calm Light), `papercol
 Rendered Markdown comes from `core::markdown::render` (escape first, links shown as text, no HTML, no images). Page scripts set `textContent` for user data and use `innerHTML` only for that rendered output.
 
 `board.js` also offers "Save board as Markdown…": it builds a snapshot and opens the project-write dialog with the fixed name `BOARD.md` (preview, confirm, optional backup).
+
+Documents page: `docs.js` (nav item `show-docs`, page `docs`). Folders and files shared with the app are added by typing a path, a review step shows the fully resolved path (`docs_check`), and a second click saves it (`docs_add` with that exact path). The list is stored in the app data folder (`docs-shared.json`, 0600, atomic writes, change log `docs-share.log`), merged with an optional `allowlist.toml`, and re-checked on every call. The older viewer window reads this merged list.
