@@ -54,7 +54,7 @@ fn names() -> Option<Vec<String>> {
     Some(out.lines().filter_map(|l| l.strip_suffix(':')).filter(|n| valid_remote(n)).take(100).map(String::from).collect())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn rclone_remotes(window: tauri::WebviewWindow) -> Result<Remotes, String> {
     super::authorized(&window)?;
     Ok(match names() { Some(remotes) => Remotes { installed: true, remotes }, None => Remotes { installed: false, remotes: vec![] } })
@@ -68,7 +68,7 @@ fn files_from(stderr: &str) -> Vec<String> {
     v.sort(); v.dedup(); v
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn rclone_backup(window: tauri::WebviewWindow, remote: String, apply: bool) -> Result<Backup, String> {
     super::authorized(&window)?;
     if !valid_remote(&remote) || !names().ok_or("rclone is not available")?.contains(&remote) { return Err("That is not one of your rclone remotes".into()); }
