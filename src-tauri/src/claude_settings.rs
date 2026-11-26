@@ -160,6 +160,7 @@ fn entry(kind: &'static str, name: String, text: &str) -> Entry {
 #[tauri::command]
 pub fn claude_inventory(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>) -> Result<Vec<Entry>, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let root = root().ok_or("Home folder unknown")?;
     let mut out = Vec::new();
     scan(&root.join("skills"), "skill", &cfg, &mut out);

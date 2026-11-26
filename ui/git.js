@@ -23,7 +23,7 @@
     try{repos=await AppIPC.invoke('git_repos');}catch(e){$('git-note').textContent=String(e);return;}
     const sel=$('git-repo'),keep=sel.value;sel.replaceChildren();
     for(const r of repos){const o=document.createElement('option');o.value=r.path;o.textContent=r.name;sel.append(o);}
-    if(!repos.length){$('git-note').textContent='None of the allowed paths is inside a git repository.';return;}
+    if(!repos.length){$('git-note').textContent='None of the shared folders is inside a git repository. Share a project folder on the Documents page to see it here.';return;}
     if(repos.some(r=>r.path===keep))sel.value=keep;
     show();
   }

@@ -31,6 +31,7 @@ fn load(window: &tauri::WebviewWindow, cfg: &Config, state: &super::WorkspaceSta
 #[tauri::command]
 pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>) -> Result<Vec<ReviewFile>, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let mut queue = Vec::new();
     for p in policy::listing(&cfg).into_iter().take(500) {
         if !p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "md" | "markdown" | "txt")) { continue; }
@@ -55,6 +56,7 @@ pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>
 #[tauri::command]
 pub fn review_load(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>, path: String) -> Result<ReviewView, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     load(&window, &cfg, &state, &path)
 }
 
@@ -62,6 +64,7 @@ pub fn review_load(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>,
 #[tauri::command]
 pub fn review_mark(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>, path: String, sha256: String, checks: Vec<String>) -> Result<ReviewView, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let (real, bytes, more) = policy::read_bytes(&path, &cfg, CAP).map_err(|_| REFUSED.to_string())?;
     if more { return Err("This file is larger than 256 KB; it cannot be reviewed here".into()); }
     if markdown::sha256_hex(&bytes) != sha256.to_ascii_lowercase() { return Err("The file changed after it was shown. Reload it and review it again.".into()); }
@@ -73,6 +76,7 @@ pub fn review_mark(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>,
 #[tauri::command]
 pub fn review_clear(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>, path: String) -> Result<ReviewView, String> {
     super::authorized(&window)?;
+    let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
     let (real, _, _) = policy::read_bytes(&path, &cfg, 1).map_err(|_| REFUSED.to_string())?;
     let key = real.to_string_lossy().into_owned();
     super::with_store(&window, &state, |s| s.review_clear(&key))?;
