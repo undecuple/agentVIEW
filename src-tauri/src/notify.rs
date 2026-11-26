@@ -72,13 +72,13 @@ fn tl_push(evs: Vec<(String, String, String)>) {
         let n = tl.len(); if n > TL_KEEP { tl.drain(..n - TL_KEEP); }
     }
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub fn timeline_list(window: tauri::WebviewWindow) -> Result<Vec<TlEvent>, String> {
     super::authorized(&window)?;
     let now = now_s();
     Ok(TL.lock().map(|t| t.iter().rev().filter(|x| now - x.t <= TL_AGE_S).cloned().collect()).unwrap_or_default())
 }
-#[tauri::command]
+#[tauri::command(async)]
 pub fn attention_list(window: tauri::WebviewWindow) -> Result<Vec<Attn>, String> {
     super::authorized(&window)?;
     let now = now_s();
@@ -127,7 +127,7 @@ pub struct DesktopStatus { enabled: bool, available: bool, last: String }
 static DESK_LAST: Mutex<String> = Mutex::new(String::new());
 fn desktop_status() -> DesktopStatus { DesktopStatus { enabled: desktop_enabled(), available: desktop_available(), last: DESK_LAST.lock().map(|l| l.clone()).unwrap_or_default() } }
 /// Read (both arguments empty), switch on or off (`enabled`), or send one fixed test message (`test`).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn desktop_notify(window: tauri::WebviewWindow, enabled: Option<bool>, test: Option<bool>) -> Result<DesktopStatus, String> {
     super::authorized(&window)?;
     if let Some(on) = enabled {

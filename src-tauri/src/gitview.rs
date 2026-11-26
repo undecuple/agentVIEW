@@ -82,7 +82,7 @@ fn repos(cfg: &Config) -> Vec<PathBuf> {
     out
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_repos(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>) -> Result<Vec<RepoEntry>, String> {
     super::authorized(&window)?;
     let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
@@ -118,7 +118,7 @@ fn parse_status(raw: &[u8]) -> (String, Option<String>, Option<u32>, Option<u32>
     (branch, upstream, ahead, behind, detached, files, untracked, conflicted)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_status(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, path: String) -> Result<RepoView, String> {
     super::authorized(&window)?;
     let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page

@@ -45,7 +45,7 @@ fn servers(v: Option<&Value>) -> Vec<McpServer> {
     out
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn claude_config_view(window: tauri::WebviewWindow) -> Result<ConfigView, String> {
     super::authorized(&window)?;
     const NOTE: &str = "Read-only. Values such as environment variables, arguments, headers, tokens and account details are never shown.";

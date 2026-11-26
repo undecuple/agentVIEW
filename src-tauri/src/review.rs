@@ -28,7 +28,7 @@ fn load(window: &tauri::WebviewWindow, cfg: &Config, state: &super::WorkspaceSta
 }
 
 /// The review queue: every allow-listed draft with its state. Waiting items (pending, then stale) come first.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>) -> Result<Vec<ReviewFile>, String> {
     super::authorized(&window)?;
     let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
@@ -53,7 +53,7 @@ pub fn review_files(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>
     Ok(queue)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn review_load(window: tauri::WebviewWindow, cfg: tauri::State<Arc<Config>>, state: tauri::State<super::WorkspaceState>, path: String) -> Result<ReviewView, String> {
     super::authorized(&window)?;
     let cfg = super::docshare::viewer_config(&cfg); // allowlist.toml plus the folders shared on the Documents page
