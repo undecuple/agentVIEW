@@ -86,6 +86,8 @@ pub async fn live_set_remote(window:tauri::WebviewWindow,state:tauri::State<'_,L
 #[tauri::command]
 pub async fn live_rename(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String,label:String)->Result<SessionInfo,String>{manager(window,&state,move|m|m.rename(&id,&label)).await}
 #[tauri::command]
+pub async fn live_remove(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String)->Result<(),String>{manager(window,&state,move|m|m.remove(&id)).await}
+#[tauri::command]
 pub async fn live_activity(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<agent_app_sessions::Activity>,String>{manager(window,&state,|m|m.activity(&usage_roots())).await}
 #[tauri::command]
 pub async fn live_stop_all(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<usize,String>{manager(window,&state,|m|m.stop_all()).await}

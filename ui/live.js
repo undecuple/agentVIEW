@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id), invoke=(cmd,args={})=>AppIPC.invoke(cmd,args);
   let sessions=[],selected=null,busy=false,polling=false,refreshing=false,inspected=false,mutation=0;
   const terminals=new Map(),tools=new Map();
-  let confirming=false,prefsInitialized=false,lastPreferred=null,rosterSig='',wakePoll=()=>{},sleeper=null;
+  let removeFor=null,confirming=false,prefsInitialized=false,lastPreferred=null,rosterSig='',wakePoll=()=>{},sleeper=null;
   const providerName=value=>value==='codex'?'Codex':'Claude Code';
   const notice=text=>{$('live-notice').textContent=text;};
   const current=()=>sessions.find(s=>s.id===selected);
@@ -58,8 +58,10 @@
   function renderExtra(s){
     const stopped=!!s&&!active(s)&&!busy,claude=!!s&&s.provider==='claude';
     $('live-extra').hidden=!s;
+    if(removeFor!==(s?s.id:null)){removeFor=s?s.id:null;removeUi(false);}
     if(document.activeElement!==$('live-rename'))$('live-rename').value=s?s.label:'';
     $('live-rename').disabled=!stopped;$('live-rename-save').disabled=!stopped;
+    $('live-remove').disabled=!stopped;
     $('live-remote').hidden=!claude;
     if(!claude)return;
     const on=!!s.remote_control;
@@ -161,6 +163,15 @@
   $('live-paste-custom').onclick=()=>pastePrompt($('live-custom').value);
   const mutate=async(command,args,done)=>{if(busy)return;busy=true;mutation++;try{const next=await invoke(command,args);sessions=sessions.map(x=>x.id===next.id?next:x);rosterSig='';notice(done);}catch(e){notice(String(e));}finally{busy=false;confirming=false;render();}};
   $('live-rename-form').onsubmit=e=>{e.preventDefault();const s=current();if(s)mutate('live_rename',{id:s.id,label:$('live-rename').value},'Renamed. Claude Code shows the new name the next time the session starts.');};
+  function removeUi(on){$('live-remove').hidden=on;$('live-remove-confirm').hidden=!on;$('live-remove-cancel').hidden=!on;}
+  $('live-remove').onclick=()=>{const s=current();if(!s)return;$('live-remove-confirm').textContent=`Confirm: remove ${s.label||'this project'} from this app`;removeUi(true);};
+  $('live-remove-cancel').onclick=()=>removeUi(false);
+  $('live-remove-confirm').onclick=async()=>{
+    const s=current();if(!s||busy)return;busy=true;mutation++;
+    try{await invoke('live_remove',{id:s.id});for(const [key,t] of terminals){if(t.id===s.id){t.term.dispose();t.host.remove();terminals.delete(key);}}
+      sessions=sessions.filter(x=>x.id!==s.id);selected=sessions.length?sessions[0].id:null;rosterSig='';notice(`Removed ${s.label||'the project'} from this app. Your project folder and its history were not touched.`);}
+    catch(e){notice(String(e));}
+    finally{busy=false;removeUi(false);render();}};
   $('live-remote-enable').onclick=()=>{confirming=true;$('live-remote-enable').hidden=true;$('live-remote-confirm').hidden=false;$('live-remote-cancel').hidden=false;};
   $('live-remote-cancel').onclick=()=>{confirming=false;render();};
   $('live-remote-confirm').onclick=()=>{const s=current();if(s)mutate('live_set_remote',{id:s.id,enabled:true},'Remote Control will be on the next time this session starts.');};

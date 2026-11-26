@@ -124,7 +124,8 @@
         await until(async()=>(await snapshot()).filter(s=>s.status==='running').length===(project==='alpha'?1:2),'session launched');
         await until(()=>$('live-notice').textContent.includes('Process launched'),'start finished in the UI');
         assert($('live-rename').getBoundingClientRect().height<80,'the rename box is one line tall, not stretched');
-        if(project==='alpha'){assert($('live-rename').disabled&&$('live-remote-enable').disabled,'rename and Remote Control are locked while running');}
+        if(project==='alpha'){assert($('live-rename').disabled&&$('live-remote-enable').disabled,'rename and Remote Control are locked while running');
+          assert($('live-remove').disabled,'Remove project is locked while running');let removeRefused=false;try{await invoke('live_remove',{id:(await snapshot())[0].id});}catch(e){removeRefused=/Stop the session/.test(String(e));}assert(removeRefused,'the backend refuses to remove a running session');}
         if(project==='beta'){assert($('live-remote').hidden,'Remote Control is not offered for Codex');}
       }
       sessions=await snapshot();assert(sessions[0].id!==sessions[1].id,'distinct app IDs');

@@ -338,6 +338,15 @@ fn remote_control_and_name_reach_the_cli_only_when_enabled_and_supported() {
     assert_eq!(renamed.display_name, "project-a · lead · Claude");
     assert!(manager.rename(&info.id,"bad\nname").is_err());
     assert!(!manager.set_remote_control(&info.id,false).unwrap().remote_control);
+    // Removing forgets only the app's record: refused while running, the project folder stays, a second removal is an error.
+    let again = manager.start(&info.id).unwrap();
+    ready(&mut manager,&again);
+    assert!(manager.remove(&info.id).is_err(), "a running session cannot be removed");
+    manager.stop(&info.id,&again.generation).unwrap();
+    manager.remove(&info.id).unwrap();
+    assert!(manager.list().unwrap().iter().all(|x| x.id != info.id));
+    assert!(fixture.a.is_dir(), "the project folder is untouched");
+    assert!(manager.remove(&info.id).is_err());
 }
 
 #[test]
