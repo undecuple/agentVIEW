@@ -24,7 +24,7 @@ Data sources: files under an explicit allow-list in a config file. Document brow
 Done when: it starts, lists the allow-listed docs, shows a diff of a synthetic file, and a test proves an excluded path is refused.
 
 ## Pages added after the first milestone
-Sessions (real CLI terminals, Remote Control toggle, stop-all, exit status), Overview (observable data only: no sub-agent or network-bandwidth data), Token usage, Settings (themes, preferences, bundle), Pre-PR review (manual labels, not approvals), Notes and the Claude config view (below). See docs/code-map/README.md.
+Sessions (real CLI terminals, Remote Control toggle, stop-all, exit status, remove a registered project with a second confirming click: only the app's own saved record and its usage numbers are deleted, never the project folder or the provider's history, and a running session cannot be removed), Overview (observable data only: no sub-agent or network-bandwidth data), Token usage, Settings (themes, preferences, bundle), Pre-PR review (manual labels, not approvals), Notes and the Claude config view (below). See docs/code-map/README.md.
 
 ## Later, not started
 Approval views, sandbox settings, subagent activity, agent-to-agent messaging, jobs.

@@ -387,6 +387,21 @@ impl SessionManager {
         sql(self.connection.execute("UPDATE sessions SET label=?1 WHERE id=?2", params![label.trim(), id]))?;
         self.get(id)
     }
+    /// Forget a registered project. Removes only this app's saved record and its usage readings. The project folder and the provider's
+    /// own history are never touched. Refused while the session runs or is starting.
+    pub fn remove(&mut self, id: &str) -> Result<()> {
+        self.refresh()?;
+        let info = self.get(id)?;
+        if self.running.get(id).is_some_and(|r| r.child.is_some()) { return Err("Stop the session before removing it".into()); }
+        if info.status == "bootstrapping" { return Err("This session is still being created; wait for it to finish before removing it".into()); }
+        let tx = sql(self.connection.transaction_with_behavior(TransactionBehavior::Immediate))?;
+        sql(tx.execute("DELETE FROM usage_readings WHERE app_session_id=?1", params![id]))?;
+        sql(tx.execute("DELETE FROM usage_sources WHERE app_session_id=?1", params![id]))?;
+        sql(tx.execute("DELETE FROM sessions WHERE id=?1", params![id]))?;
+        sql(tx.commit())?;
+        self.running.remove(id);
+        Ok(())
+    }
     fn generation(&self, id: &str, generation: &str) -> Result<SessionInfo> {
         let info = self.get(id)?;
         if info.generation != generation { return Err("Session launch changed; refresh before acting".into()); }
