@@ -37,6 +37,71 @@ const SYSTEM_ROOTS: [&str; 14] = [
     "/", "/etc", "/usr", "/var", "/proc", "/sys", "/dev", "/boot", "/root", "/run", "/bin", "/sbin", "/lib", "/lib64",
 ];
 
+/// Longest path text the app accepts for a shared folder or file.
+pub const MAX_SHARE_PATH: usize = 1024;
+
+/// Names under the home folder that hold secrets. A shared path may not contain any of them, so sharing a parent of one is refused.
+const SECRET_HOME_DIRS: [&str; 6] = [".ssh", ".gnupg", ".aws", ".kube", ".config", ".local"];
+
+/// The shipped deny list as a plain config with nothing allowed. Used when there is no allowlist.toml.
+pub fn builtin() -> Config {
+    let mut deny: Vec<String> = DEFAULT_DENY.iter().map(|d| d.to_string()).collect();
+    deny.push("*.iso".into());
+    deny.sort();
+    deny.dedup();
+    Config { allow: Vec::new(), deny, gate_file: None }
+}
+
+/// One allow entry, as typed in allowlist.toml or in the app: absolute (a leading `~/` is expanded), it must exist, resolve through
+/// symlinks to a regular file or a directory, be no system path, no mount root, not your home folder or a parent of it, not a parent of
+/// a folder that holds secrets, and not carry a denied name (`strict` adds the mount-point refusal, which the hand-written file skips
+/// so a deliberate share of a tmpfs keeps working). Returns the resolved path (the only form that is ever stored or compared).
+pub fn validate_allow(p: &str, strict: bool) -> Result<PathBuf, String> {
+    if p.len() > MAX_SHARE_PATH {
+        return Err("path is too long".into());
+    }
+    if p.contains('\0') || p.chars().any(|c| c.is_control()) {
+        return Err("path has control characters".into());
+    }
+    let e = expand(p);
+    if !e.is_absolute() {
+        return Err(format!("relative allow entry refused: {p}"));
+    }
+    let real = fs::canonicalize(&e).map_err(|_| format!("allow entry does not exist: {p}"))?;
+    if real.to_str().is_none() {
+        return Err("non-UTF-8 allow entry refused".into());
+    }
+    if SYSTEM_ROOTS.iter().any(|r| real == Path::new(r)) || ["/proc", "/sys", "/dev"].iter().any(|r| real.starts_with(r)) {
+        return Err(format!("allow entry is a system path: {p}"));
+    }
+    let md = fs::metadata(&real).map_err(|_| format!("allow entry cannot be read: {p}"))?;
+    if !(md.is_dir() || md.is_file()) {
+        return Err(format!("allow entry is neither a folder nor a regular file: {p}"));
+    }
+    if strict && md.is_dir() {
+        if let Some(parent) = real.parent() {
+            if fs::metadata(parent).map(|pm| pm.dev() != md.dev()).unwrap_or(true) {
+                return Err(format!("allow entry is a mount point: {p}"));
+            }
+        }
+    }
+    if let Some(h) = std::env::var_os("HOME").map(PathBuf::from) {
+        let h = fs::canonicalize(&h).unwrap_or(h);
+        if h.starts_with(&real) {
+            return Err(format!("allow entry is your home directory or one of its parents: {p}"));
+        }
+        if SECRET_HOME_DIRS.iter().any(|d| h.join(d).starts_with(&real)) {
+            return Err(format!("allow entry contains a folder that holds secrets: {p}"));
+        }
+    }
+    let mut deny: Vec<String> = DEFAULT_DENY.iter().map(|d| d.to_string()).collect();
+    deny.push("*.iso".into());
+    if let Some(hit) = denied(&real, &deny) {
+        return Err(format!("allow entry has a denied name: {hit}"));
+    }
+    Ok(real)
+}
+
 fn string_list(v: &toml::Value, k: &str) -> Result<Vec<String>, String> {
     match v.get(k) {
         None => Ok(Vec::new()),
@@ -51,27 +116,9 @@ fn string_list(v: &toml::Value, k: &str) -> Result<Vec<String>, String> {
 impl Config {
     pub fn from_toml(text: &str) -> Result<Config, String> {
         let v: toml::Value = text.parse().map_err(|e: toml::de::Error| e.to_string())?;
-        let home = std::env::var_os("HOME").map(PathBuf::from);
         let mut allow = Vec::new();
         for p in string_list(&v, "allow")? {
-            let e = expand(&p);
-            if !e.is_absolute() {
-                return Err(format!("relative allow entry refused: {p}"));
-            }
-            let real = fs::canonicalize(&e).map_err(|_| format!("allow entry does not exist: {p}"))?;
-            if real.to_str().is_none() {
-                return Err("non-UTF-8 allow entry refused".into());
-            }
-            if SYSTEM_ROOTS.iter().any(|r| real == Path::new(r)) || ["/proc", "/sys", "/dev"].iter().any(|r| real.starts_with(r)) {
-                return Err(format!("allow entry is a system path: {p}"));
-            }
-            if let Some(h) = &home {
-                let h = fs::canonicalize(h).unwrap_or_else(|_| h.clone());
-                if h.starts_with(&real) {
-                    return Err(format!("allow entry is your home directory or one of its parents: {p}"));
-                }
-            }
-            allow.push(real);
+            allow.push(validate_allow(&p, false)?);
         }
         let mut deny: Vec<String> = DEFAULT_DENY.iter().map(|d| d.to_string()).collect();
         deny.push("*.iso".into());
@@ -208,34 +255,58 @@ pub fn check_root_path(path: &Path, cfg: &Config) -> Result<(PathBuf, usize), Re
     Err(Refused("not in allow list".into()))
 }
 
+/// Most files one listing returns, and how deep it walks. A shared folder with more is cut, never followed without end.
+pub const MAX_LISTED: usize = 2000;
+const MAX_DEPTH: usize = 16;
+
 pub fn listing(cfg: &Config) -> Vec<PathBuf> {
+    listing_capped(cfg).0
+}
+
+/// The listing and whether it was cut at MAX_LISTED files.
+pub fn listing_capped(cfg: &Config) -> (Vec<PathBuf>, bool) {
     let mut out = Vec::new();
+    let mut cut = false;
     for a in &cfg.allow {
         let mut cands = Vec::new();
         if a.is_file() {
             cands.push(a.clone());
         } else if a.is_dir() {
-            walk(a, cfg, &mut cands);
+            walk(a, cfg, &mut cands, 0);
         }
         for c in cands {
             if let Ok(p) = check_path(&c, cfg) {
                 out.push(p);
             }
         }
+        if out.len() >= MAX_LISTED {
+            cut = true;
+            break;
+        }
     }
     out.sort();
     out.dedup();
-    out
+    if out.len() > MAX_LISTED {
+        out.truncate(MAX_LISTED);
+        cut = true;
+    }
+    (out, cut)
 }
 
-fn walk(dir: &Path, cfg: &Config, out: &mut Vec<PathBuf>) {
+fn walk(dir: &Path, cfg: &Config, out: &mut Vec<PathBuf>, depth: usize) {
+    if depth > MAX_DEPTH || out.len() >= MAX_LISTED {
+        return;
+    }
     let Ok(rd) = fs::read_dir(dir) else { return };
     for e in rd.flatten() {
+        if out.len() >= MAX_LISTED {
+            return;
+        }
         let p = e.path();
         let Ok(ft) = e.file_type() else { continue };
         if ft.is_dir() {
             if denied(&p, &cfg.deny).is_none() {
-                walk(&p, cfg, out);
+                walk(&p, cfg, out, depth + 1);
             }
         } else {
             out.push(p);

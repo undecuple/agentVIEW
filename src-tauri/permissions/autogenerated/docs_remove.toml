@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-docs-remove"
+description = "Enables the docs_remove command without any pre-configured scope."
+commands.allow = ["docs_remove"]
+
+[[permission]]
+identifier = "deny-docs-remove"
+description = "Denies the docs_remove command without any pre-configured scope."
+commands.deny = ["docs_remove"]
