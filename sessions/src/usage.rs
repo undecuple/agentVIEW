@@ -49,6 +49,8 @@ pub struct UsageSession {
     pub last_measured_at: Option<String>,
     pub totals: UsageTotals,
     pub daily: Vec<UsageDay>,
+    /// True for Claude Code: its log is the only source, and it can record less output than was used, so output and total are "at least".
+    pub output_lower_bound: bool,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct UsageSnapshot { pub sessions: Vec<UsageSession> }
@@ -93,7 +95,7 @@ impl SessionManager {
         for session in roster {
             let mut item=UsageSession{app_session_id:session.id.clone(),provider:session.provider,native_session_id:session.provider_session_id,
                 label:session.label,source:source(session.provider).into(),status:"unavailable".into(),last_checked_at:None,last_measured_at:None,
-                totals:UsageTotals::default(),daily:Vec::new()};
+                totals:UsageTotals::default(),daily:Vec::new(),output_lower_bound:session.provider==Provider::Claude};
             let saved:Option<(String,String,Option<String>,Option<String>,String,String)>=sql(self.connection.query_row(
                 "SELECT source,status,checked,measured,totals,daily FROM usage_readings WHERE app_session_id=?1",[&session.id],
                 |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional())?;
@@ -144,7 +146,7 @@ impl SessionManager {
                     sql(self.connection.execute("INSERT INTO usage_readings VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
                         ON CONFLICT(app_session_id) DO UPDATE SET source=excluded.source,status=excluded.status,checked=excluded.checked,
                         measured=excluded.measured,totals=excluded.totals,daily=excluded.daily,device=excluded.device,inode=excluded.inode,bytes=excluded.bytes",
-                        params![session.id,source(session.provider),if parsed.partial||session.provider==Provider::Claude{"partial"}else{"ok"},checked,parsed.measured,totals,daily,meta.dev(),meta.ino(),meta.len()]))?;
+                        params![session.id,source(session.provider),if parsed.partial{"partial"}else{"ok"},checked,parsed.measured,totals,daily,meta.dev(),meta.ino(),meta.len()]))?;
                 },
                 other=>{
                     let status=match other{Ok(_)=>"no_usage".to_string(),Err(status)=>status};
@@ -205,10 +207,10 @@ fn parse_file(file:&mut File,length:u64,session:&SessionInfo,cancel:&AtomicBool,
     }
     parser.finish(!pending.is_empty())
 }
-struct Parser<'a>{session:&'a SessionInfo,messages:BTreeMap<String,(String,String,UsageTotals)>,
+struct Parser<'a>{session:&'a SessionInfo,messages:BTreeMap<String,(String,String,UsageTotals)>,outputs:BTreeMap<String,u64>,
     previous:Option<UsageTotals>,seen:HashSet<(String,[Option<u64>;5])>,daily:BTreeMap<String,UsageTotals>,measured:Option<String>,identity:bool}
 impl<'a> Parser<'a>{
-    fn new(session:&'a SessionInfo)->Self{Self{session,messages:BTreeMap::new(),previous:None,seen:HashSet::new(),daily:BTreeMap::new(),measured:None,identity:false}}
+    fn new(session:&'a SessionInfo)->Self{Self{session,messages:BTreeMap::new(),outputs:BTreeMap::new(),previous:None,seen:HashSet::new(),daily:BTreeMap::new(),measured:None,identity:false}}
     fn record(&mut self,v:&Value)->Result<()>{
         let native=self.session.provider_session_id.as_deref().ok_or("not_started")?;
         match self.session.provider{
@@ -224,6 +226,9 @@ impl<'a> Parser<'a>{
                 // Unsupported-only/empty usage is not a numeric observation:
                 // it must not reserve a message day or poison later totals.
                 if !totals.any(){return Ok(());}
+                // Output is kept apart (the largest value seen for a message), because Claude Code can log a smaller figure than it used.
+                // It is therefore shown as "at least", never as exact, and it never takes part in the coherent-snapshot rule below.
+                if let Some(o)=number(usage,"output_tokens")?{let e=self.outputs.entry(id.into()).or_insert(0);if o>*e{*e=o;}}
                 // On-disk per-step output finality is not established by the SDK
                 // contract; don't convert its possible placeholder into usage.
                 if let Some((_,old_time,old))=self.messages.get_mut(id){
@@ -263,7 +268,9 @@ impl<'a> Parser<'a>{
     fn finish(mut self,partial:bool)->Result<Parsed>{
         let totals=if self.session.provider==Provider::Claude{
             let mut total:Option<UsageTotals>=None;
-            for(_, (day,time,counts))in self.messages{
+            let outputs=std::mem::take(&mut self.outputs);
+            for(id, (day,time,mut counts))in self.messages{
+                if let Some(o)=outputs.get(&id){counts.output_tokens=Some(*o);counts.total_tokens=add(counts.input_tokens,Some(*o))?;}
                 if self.daily.len()>=4096&&!self.daily.contains_key(&day){return Err("too_large".into());}
                 total=Some(if let Some(old)=total{old.sum(&counts)?}else{counts.clone()});
                 let sum=if let Some(old)=self.daily.get(&day){old.sum(&counts)?}else{counts};self.daily.insert(day,sum);

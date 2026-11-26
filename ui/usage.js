@@ -6,8 +6,11 @@
   const node = (tag, cls, text) => { const e=document.createElement(tag); if(cls)e.className=cls; if(text!==undefined)e.textContent=text; return e; };
   const providerName = p => p==='codex'?'Codex':'Claude Code';
   const sourceName = value => ({claude_jsonl_v1:'Claude session record (v1)',codex_rollout_v1:'Codex rollout (v1)'})[value]||'No supported source';
-  const stateName = value => ({ok:'Read successfully',partial:'Partial counters',no_usage:'No supported measurement in current source',not_started:'Session not started',source_not_bound:'No source bound for this session',missing:'Source missing; saved values retained',unsupported:'Unsupported source format or path',identity_mismatch:'Source identity mismatch; saved values retained',source_replaced:'Source changed; saved values retained',source_truncated:'Source shortened; saved values retained',counter_reset:'Counter reset; saved values retained',too_large:'Source limit reached',read_error:'Source unreadable; saved values retained',cancelled:'Check cancelled',budget_exceeded:'Refresh limit reached'})[value]||'Source unavailable';
+  const stateName = value => ({ok:'Read successfully',partial:'Some counters are missing',no_usage:'No replies recorded in its log yet',not_started:'Not started yet',source_not_bound:'No source bound for this session',missing:'Its log file was not found (it may not have had a reply yet); saved values kept',unsupported:'Unsupported source format or path',identity_mismatch:'Source identity mismatch; saved values retained',source_replaced:'Source changed; saved values retained',source_truncated:'Source shortened; saved values retained',counter_reset:'Counter reset; saved values retained',too_large:'Source limit reached',read_error:'Source unreadable; saved values retained',cancelled:'Check cancelled',budget_exceeded:'Refresh limit reached'})[value]||'Source unavailable';
   const count = n => Number.isSafeInteger(n)&&n>=0 ? n.toLocaleString() : 'Unavailable';
+  // Claude Code can log less output than it used, so its output and total are shown as "at least" (≥).
+  const lowerFields = ['output_tokens','total_tokens'];
+  const shown = (field, n, lower) => (lower && lowerFields.includes(field) && Number.isSafeInteger(n) && n>=0) ? `≥ ${count(n)}` : count(n);
   const stamp = value => typeof value==='string' ? value : 'Unavailable';
   let snapshot={sessions:[]},busy=false,version=0;
   function inPeriod(date) {
@@ -31,10 +34,10 @@
   function totals(session) {
     return $('usage-period').value==='all'?session.totals:sum(session.daily.filter(d=>inPeriod(d.date)).map(d=>d.totals));
   }
-  function cells(row, values, samples, denominator){
+  function cells(row, values, samples, denominator, lower){
     for(const field of fields){
       const cell=node('td','');cell.dataset.value=String(values?.[field]??'unavailable');
-      cell.append(node('span','usage-number',count(values?.[field])));
+      cell.append(node('span','usage-number',shown(field,values?.[field],lower)));
       if(samples&&values?.[field]!=null)cell.append(node('small','',`${samples.filter(t=>t?.[field]!=null).length}/${denominator} sessions`));
       row.append(cell);
     }
@@ -46,9 +49,9 @@
       const rows=sessions.filter(s=>s.provider===provider),values=sum(rows.map(totals));
       const measured=rows.filter(s=>totals(s)?.total_tokens!=null).length;
       const card=node('div','usage-card');card.dataset.provider=provider;
-      card.append(node('h3','',providerName(provider)),node('strong','',count(values.total_tokens)),node('p','','Reported token subtotal'),node('small','',`${measured} of ${rows.length} sessions report a total in this period`));
+      card.append(node('h3','',providerName(provider)),node('strong','',shown('total_tokens',values.total_tokens,provider==='claude')),node('p','',provider==='claude'?'At least this many tokens (Claude Code may log less output than it used)':'Reported token subtotal'),node('small','',`${measured} of ${rows.length} sessions report a total in this period`));
       const breakdown=node('dl','usage-breakdown');
-      for(const [label,field] of [['Input','input_tokens'],['Output','output_tokens'],['Cache read','cached_input_tokens'],['Cache write','cache_creation_input_tokens']]){const value=node('dd','',count(values[field]));if(values[field]!=null)value.append(node('small','',` · ${rows.filter(s=>totals(s)?.[field]!=null).length}/${rows.length} sessions`));breakdown.append(node('dt','',label),value);};
+      for(const [label,field] of [['Input','input_tokens'],['Output','output_tokens'],['Cache read','cached_input_tokens'],['Cache write','cache_creation_input_tokens']]){const value=node('dd','',shown(field,values[field],provider==='claude'));if(values[field]!=null)value.append(node('small','',` · ${rows.filter(s=>totals(s)?.[field]!=null).length}/${rows.length} sessions`));breakdown.append(node('dt','',label),value);};
       card.append(breakdown);
       $('usage-providers').append(card);
     }
@@ -57,7 +60,7 @@
       const row=node('tr','');row.dataset.session=s.app_session_id;
       const label=node('td','');label.append(node('strong','',s.label),node('small','',`${providerName(s.provider)} · Coordinator`),node('small','',`App ${s.app_session_id}`),node('small','',`Source: ${sourceName(s.source)} · ${stateName(s.status)}`));
       label.append(node('small','',`Last checked: ${stamp(s.last_checked_at)}`),node('small','',`Last measured: ${stamp(s.last_measured_at)}`));
-      row.append(label);cells(row,totals(s));$('usage-agents').append(row);
+      row.append(label);cells(row,totals(s),null,0,s.output_lower_bound);$('usage-agents').append(row);
     }
     if(!sessions.length){const row=node('tr','');const cell=node('td','muted','No registered live sessions in this view. Usage is Unavailable.');cell.colSpan=6;row.append(cell);$('usage-agents').append(row);}
     const days=new Map();
@@ -67,7 +70,7 @@
       const row=node('tr',''),label=node('td','');
       const measured=days.get(date).filter(t=>t.total_tokens!=null).length;
       label.append(node('strong','',date),node('small','',`${measured} of ${sessions.length} sessions report a total`));
-      row.append(label);cells(row,sum(days.get(date)),days.get(date),sessions.length);$('usage-days').append(row);
+      row.append(label);cells(row,sum(days.get(date)),days.get(date),sessions.length,sessions.some(s=>s.output_lower_bound));$('usage-days').append(row);
     }
     if(!days.size){const row=node('tr','');const cell=node('td','muted','No reported daily measurements in this period.');cell.colSpan=6;row.append(cell);$('usage-days').append(row);}
   }
