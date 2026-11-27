@@ -10,6 +10,53 @@
   const active=s=>s&&s.status==='running';
   // Opt-in resume after a restart: lists sessions that are interrupted, or stopped with a saved conversation, and resumes only the ones a person confirms, by exact saved ID. Nothing is resent.
   let resumeAll=false,armedFocus=false;
+  // Konsole-style tabs: one tab per opened session. Closing a tab never stops its process. Open tabs and their order are a per-viewer
+  // convenience kept in localStorage (session IDs only); without it the page still works and opens tabs for running sessions.
+  const TABKEY='agentview.liveTabs',okId=v=>typeof v==='string'&&/^[0-9a-f-]{36}$/i.test(v);
+  let tabs=[],tabsLoaded=false;
+  const savedTabs=(()=>{try{const v=JSON.parse(localStorage.getItem(TABKEY)||'null');return Array.isArray(v)?v.filter(okId).slice(0,64):null;}catch{return null;}})();
+  function saveTabs(){try{localStorage.setItem(TABKEY,JSON.stringify(tabs));}catch{}}
+  function openTab(id){if(okId(id)&&!tabs.includes(id)){tabs.push(id);saveTabs();}}
+  function closeTab(id){
+    const i=tabs.indexOf(id);if(i<0)return;const s=sessions.find(x=>x.id===id);
+    const msg=s&&active(s)?`Tab closed. ${s.display_name||s.label} is still running; open it again from the list or the + menu.`:'';
+    tabs.splice(i,1);saveTabs();
+    if(selected===id){const next=tabs[Math.min(i,tabs.length-1)];if(next)select(next);else{selected=null;render();}}else render();
+    notice(msg);
+  }
+  function moveTab(id,d){const i=tabs.indexOf(id),j=i+d;if(i<0||j<0||j>=tabs.length)return;[tabs[i],tabs[j]]=[tabs[j],tabs[i]];saveTabs();render();}
+  function renderTabs(){
+    const strip=$('live-tabs'),add=$('live-tab-add');strip.replaceChildren();
+    if(tabsLoaded){const before=tabs.length;tabs=tabs.filter(id=>sessions.some(s=>s.id===id));if(tabs.length!==before)saveTabs();}
+    if(selected&&!tabs.includes(selected))openTab(selected);
+    tabs.forEach((id,i)=>{
+      const s=sessions.find(x=>x.id===id);if(!s)return;const name=s.display_name||s.label,run=active(s);
+      const tab=document.createElement('div');tab.className='live-tab';tab.setAttribute('role','tab');tab.dataset.tab=id;
+      tab.setAttribute('aria-selected',String(id===selected));tab.setAttribute('aria-controls','live-terminal');tab.tabIndex=id===selected?0:-1;
+      tab.title=`${name} · ${s.status}${i<9?` · Alt+${i+1}`:''}`;
+      const dot=document.createElement('span');dot.className='dot '+String(s.status).replace(/[^a-z-]/g,'');dot.setAttribute('aria-hidden','true');
+      const label=document.createElement('span');label.className='live-tab-name';label.textContent=name;
+      const x=document.createElement('button');x.type='button';x.className='live-tab-close';x.tabIndex=-1;x.textContent='×';
+      x.setAttribute('aria-label',run?`Close tab ${name} (the session keeps running)`:`Close tab ${name}`);
+      x.title=run?'Close tab. The session keeps running; Stop process ends it.':'Close tab';
+      x.onclick=e=>{e.stopPropagation();closeTab(id);};
+      tab.onclick=()=>select(id);
+      tab.onmousedown=e=>{if(e.button===1)e.preventDefault();};
+      tab.onauxclick=e=>{if(e.button===1){e.preventDefault();closeTab(id);}};
+      tab.onkeydown=e=>{
+        const k=tabs.indexOf(id);let j=-1;
+        if(e.key==='ArrowRight')j=(k+1)%tabs.length;else if(e.key==='ArrowLeft')j=(k-1+tabs.length)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;
+        else if(e.key==='Delete'){e.preventDefault();closeTab(id);$('live-tabs').querySelector('[aria-selected=true]')?.focus();return;}
+        else if(e.key==='Enter'||e.key===' '){e.preventDefault();select(id);return;}
+        if(j>=0){e.preventDefault();select(tabs[j],true);}
+      };
+      tab.append(dot,label,x);strip.append(tab);
+    });
+    const closed=sessions.filter(s=>!tabs.includes(s.id));add.replaceChildren();
+    const head=document.createElement('option');head.value='';head.textContent='+';add.append(head);
+    for(const s of closed){const o=document.createElement('option');o.value=s.id;o.textContent=`${s.display_name||s.label} · ${s.status}`;add.append(o);}
+    add.value='';add.disabled=!closed.length;add.title=closed.length?'Open a session in a new tab':'Every registered session has a tab';
+  }
   function renderResume(){
     const box=$('live-resume'),list=sessions.filter(s=>s.status==='interrupted'||((s.status==='stopped'||s.status==='exited')&&s.provider_session_id));
     box.hidden=!list.length;if(!list.length){resumeAll=false;return;}
@@ -27,7 +74,7 @@
     if(armedFocus){armedFocus=false;all.focus();}
   }
   function render(){
-    renderResume();
+    renderResume();renderTabs();
     const roster=$('live-roster');roster.replaceChildren();
     for(const s of sessions.filter(s=>!$('live-filter').value||s.provider===$('live-filter').value)){
       const button=document.createElement('button');button.type='button';button.className='live-session';button.dataset.session=s.id;button.setAttribute('aria-pressed',String(selected===s.id));
@@ -111,8 +158,8 @@
     });
     return t;
   }
-  function select(id){selected=id;notice('');render();const s=current();if(s){const t=terminal(s);t.term.focus();t.host.scrollIntoView({block:'nearest',inline:'nearest'});}}
-  async function refresh(){if(refreshing)return;refreshing=true;const epoch=mutation;try{const next=await invoke('live_snapshot');if(epoch!==mutation)return;const sig=JSON.stringify(next);const same=sig===rosterSig;rosterSig=sig;sessions=next;if(!selected&&sessions.length)selected=sessions[0].id;if(!same)render();}catch(e){notice(String(e));}finally{refreshing=false;}}
+  function select(id,focusTab){selected=id;openTab(id);notice('');render();const s=current();if(s){const t=terminal(s);$('live-tabs').querySelector('[aria-selected=true]')?.scrollIntoView({block:'nearest',inline:'nearest'});if(focusTab)$('live-tabs').querySelector('[aria-selected=true]')?.focus();else{t.term.focus();t.host.scrollIntoView({block:'nearest',inline:'nearest'});}}}
+  async function refresh(){if(refreshing)return;refreshing=true;const epoch=mutation;try{const next=await invoke('live_snapshot');if(epoch!==mutation)return;const sig=JSON.stringify(next);const same=sig===rosterSig;rosterSig=sig;sessions=next;if(!tabsLoaded){tabsLoaded=true;tabs=(savedTabs??sessions.filter(active).map(s=>s.id)).filter(id=>sessions.some(s=>s.id===id));if(!selected)selected=tabs[0]??sessions[0]?.id??null;render();}else if(!same)render();}catch(e){notice(String(e));}finally{refreshing=false;}}
   function terminalTheme(){
     const css=getComputedStyle(document.documentElement),color=name=>css.getPropertyValue(name).trim();
     return {background:color('--bg'),foreground:color('--text'),cursor:color('--accent'),black:color('--surface'),red:color('--red'),green:color('--green'),yellow:color('--yellow'),blue:color('--accent'),magenta:color('--magenta'),cyan:color('--cyan'),white:color('--text'),brightBlack:color('--muted'),brightRed:color('--red'),brightGreen:color('--green'),brightYellow:color('--yellow'),brightBlue:color('--accent'),brightMagenta:color('--purple'),brightCyan:color('--cyan'),brightWhite:color('--text')};
@@ -231,6 +278,21 @@
     }catch(e){notice(`Terminal unavailable: ${String(e)}`);}finally{polling=false;}
     const q=terminals.get(key)?.quiet||0;return q<5?120:q<20?300:1000;
   }
+  // Tab keys (Live page only). Ctrl+PageUp/PageDown cycle, Ctrl+Shift+PageUp/PageDown move the active tab, Alt+1..9 jump. These combos are
+  // taken before the terminal sees them; every other key reaches the terminal unchanged. Alt+1..9 jumps tabs only while the focus is in
+  // the terminal or the tab strip; elsewhere it keeps opening sidebar pages.
+  window.addEventListener('keydown',ev=>{
+    if($('live').hidden||ev.metaKey||!tabs.length)return;
+    const i=tabs.indexOf(selected);let handled=false;
+    if(ev.ctrlKey&&!ev.altKey&&(ev.key==='PageUp'||ev.key==='PageDown')){
+      const d=ev.key==='PageUp'?-1:1;handled=true;
+      if(ev.shiftKey){if(i>=0)moveTab(selected,d);}else select(tabs[((i<0?0:i)+d+tabs.length)%tabs.length]);
+    }else if(ev.altKey&&!ev.ctrlKey&&!ev.shiftKey&&/^Digit[1-9]$/.test(ev.code)&&ev.target.closest?.('.xterm,#live-terminal,#live-tabbar')){
+      handled=true;const n=Number(ev.code.slice(5))-1;if(n<tabs.length)select(tabs[n]);
+    }
+    if(handled){ev.preventDefault();ev.stopPropagation();}
+  },true);
+  $('live-tab-add').onchange=()=>{const id=$('live-tab-add').value;if(okId(id))select(id);};
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakePoll();});
   wakePoll=()=>{const s=current(),t=s&&terminals.get(`${s.id}:${s.generation}`);if(t)t.quiet=0;if(sleeper)sleeper();};
   (async function loop(){for(;;){const ms=(await pollTerminal().catch(()=>500))||120;await new Promise(r=>{sleeper=r;setTimeout(r,ms);});}})();

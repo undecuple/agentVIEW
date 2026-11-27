@@ -26,6 +26,41 @@
   const snapshot=()=>invoke('live_snapshot');
   async function output(s){const r=await invoke('live_read',{id:s.id,generation:s.generation,offset:0});return new TextDecoder().decode(Uint8Array.from(atob(r.data),c=>c.charCodeAt(0)));}
   async function select(s){document.querySelector(`#live-roster [data-session="${s.id}"]`).click();await until(()=>$('live-identity').textContent.includes(s.id),'selected exact session');}
+  async function tabChecks(sessions){
+    const [a,b]=sessions,tab=s=>$('live-tabs').querySelector(`[data-tab="${s.id}"]`),tabEls=()=>[...$('live-tabs').querySelectorAll('[role=tab]')];
+    const shown=s=>$('live-identity').textContent.includes(s.id),ta=()=>$('live-terminal').querySelector('.terminal-instance:not([hidden]) textarea');
+    const key=(init)=>{const ev=new KeyboardEvent('keydown',{bubbles:true,cancelable:true,...init});ta().focus();ta().dispatchEvent(ev);return ev;};
+    await select(a);await select(b);
+    assert(tab(a)&&tab(b),'each opened session has a tab');
+    assert(tab(b).getAttribute('aria-selected')==='true'&&tab(a).getAttribute('aria-selected')==='false','the active tab follows the selected session');
+    assert($('live-tabs').getAttribute('role')==='tablist'&&tabEls().every(t=>t.getAttribute('role')==='tab'),'tabs carry tablist and tab roles');
+    tab(a).click();await until(()=>shown(a),'clicking a tab switches the terminal');
+    key({key:'PageDown',code:'PageDown',ctrlKey:true});await until(()=>shown(b),'Ctrl+PageDown cycles to the next tab');
+    const jump=key({key:'1',code:'Digit1',altKey:true});await until(()=>shown(a),'Alt+1 in the terminal jumps to the first tab');
+    assert(jump.defaultPrevented,'a tab shortcut is taken before the terminal sees it');
+    const seen=[],spy=e=>seen.push(e.code);document.addEventListener('keydown',spy,true);
+    key({key:'x',code:'KeyX'});key({key:'Home',code:'Home',ctrlKey:true});key({key:'2',code:'Digit2',ctrlKey:true});
+    document.removeEventListener('keydown',spy,true);
+    assert(seen.join()==='KeyX,Home,Digit2'&&shown(a),'ordinary keys pass through to the terminal untouched');
+    key({key:'PageDown',code:'PageDown',ctrlKey:true,shiftKey:true});await until(()=>tabEls()[1]?.dataset.tab===a.id,'Ctrl+Shift+PageDown moves the active tab');
+    key({key:'PageUp',code:'PageUp',ctrlKey:true,shiftKey:true});await until(()=>tabEls()[0]?.dataset.tab===a.id,'Ctrl+Shift+PageUp moves it back');
+    assert((await snapshot()).find(s=>s.id===a.id).status==='running','session runs before its tab is closed');
+    tab(a).querySelector('.live-tab-close').click();
+    await until(()=>!tab(a),'closing a tab removes it');
+    assert(/still running/.test($('live-notice').textContent),'closing a running tab says the session keeps running');
+    assert((await snapshot()).find(s=>s.id===a.id).status==='running','closing a tab never stops its process');
+    assert(shown(b)&&tab(b).getAttribute('aria-selected')==='true','closing the active tab switches to its neighbour');
+    const add=$('live-tab-add');assert([...add.options].some(o=>o.value===a.id),'the + menu offers the closed session');
+    add.value=a.id;add.dispatchEvent(new Event('change'));
+    await until(()=>tab(a)&&shown(a),'the + menu reopens the session in a tab');
+    tab(a).dispatchEvent(new MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));
+    await until(()=>!tab(a),'middle click closes a tab');
+    assert((await snapshot()).find(s=>s.id===a.id).status==='running','middle click does not stop the process either');
+    await select(a);assert(tab(a)?.getAttribute('aria-selected')==='true','selecting from the list reopens and activates its tab');
+    $('live-tabbar').scrollIntoView({block:'start'});report('capture','tabs');await new Promise(r=>setTimeout(r,1400));
+    tab(a).focus();tab(a).dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));
+    await until(()=>shown(b)&&document.activeElement?.dataset?.tab===b.id,'arrow keys move between tabs and keep focus in the strip');
+  }
   async function terminalPreferenceChecks(sessions){
     const original=await invoke('app_settings_snapshot'),s=sessions.find(s=>s.provider==='codex');await select(s);
     async function size(nonce){await invoke('live_write',{id:s.id,generation:s.generation,data:`/size ${nonce}\r`});let match;await until(async()=>{match=(await output(s)).match(new RegExp(`SIZE ${nonce} ([0-9]+) ([0-9]+)`));return match;},'native PTY size');return[+match[1],+match[2]];}
@@ -227,7 +262,7 @@
         $('show-live').click();
       }
       assert((await snapshot()).filter(s=>s.status==='running').length===2,'two project sessions coexist');
-      if(!TEST_LAYOUT){await usageChecks();await terminalPreferenceChecks(sessions);}
+      if(!TEST_LAYOUT){await tabChecks(sessions);await usageChecks();await terminalPreferenceChecks(sessions);}
       await select(sessions.find(s=>s.provider==='codex'));
       if(!TEST_LAYOUT){$('live-quick').open=true;document.scrollingElement.scrollTop=0;}
       report('phase','live-first-preview');
