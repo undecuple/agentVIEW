@@ -34,7 +34,7 @@ Full instructions, including a NixOS section, are in the [install guide](docs/IN
 3. **Start the app.** Run `CARGO_HOME="$PWD/.cargo-home" cargo run --locked -p agent-app`.
 4. **Try a conversation.** Select an agent in Hierarchy, send a message, then restart. The conversation remains.
 5. **Try the queue.** Set a simulated recipient to busy or paused, send a message, then resume it. Delivery continues in order.
-6. **Open Sessions.** Select Claude Code or Codex, inspect the installed CLI, register an absolute project directory, review its resolved path/version, then start explicitly. Use native terminal prompts to log in or approve work. Closing the workspace stops owned processes; reopening requires an explicit exact-ID resume.
+6. **Open Sessions.** Select Claude Code or Codex, inspect the installed CLI, register an absolute project directory, review its resolved path/version, then start explicitly. Use native terminal prompts to log in or approve work. Closing the workspace stops owned processes (unless Settings says "Keep running sessions in the background": then closing only hides the window and launching agentVIEW again, or running the AppImage / `agentview` launcher with `--quit`, brings it back or stops everything); reopening after a stop requires an explicit exact-ID resume.
 
 <p align="center"><picture><source media="(prefers-color-scheme: light)" srcset="assets/divider-light.svg"><img src="assets/divider.svg" width="1280" alt=""></picture></p>
 

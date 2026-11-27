@@ -24,6 +24,9 @@ pub struct AppSettings {
     pub remember_filters:bool,
     #[serde(default)]
     pub demo_mode:bool,
+    /// "stop" (default) stops every session when the window closes; "background" hides the window and keeps running sessions.
+    #[serde(default="default_close_behavior")]
+    pub close_behavior:String,
     pub hierarchy_provider:String,
     pub hierarchy_project:String,
     pub hierarchy_status:String,
@@ -37,10 +40,11 @@ pub struct AppSettings {
     pub usage_refresh_seconds:u16,
     pub quick_prompts:Vec<QuickPrompt>,
 }
+fn default_close_behavior()->String{"stop".into()}
 impl Default for AppSettings {
     fn default()->Self{Self{
         theme:"dark".into(),ui_scale_percent:100,density:"comfortable".into(),default_page:"sessions".into(),preferred_provider:"claude".into(),
-        remember_filters:false,demo_mode:false,hierarchy_provider:String::new(),hierarchy_project:"Agent App".into(),hierarchy_status:String::new(),hierarchy_view:"tree".into(),
+        remember_filters:false,demo_mode:false,close_behavior:default_close_behavior(),hierarchy_provider:String::new(),hierarchy_project:"Agent App".into(),hierarchy_status:String::new(),hierarchy_view:"tree".into(),
         live_provider_filter:String::new(),usage_provider:String::new(),usage_period:"all".into(),terminal_font_size:13,terminal_cursor_blink:true,
         terminal_scrollback:2000,usage_refresh_seconds:0,quick_prompts:vec![
             QuickPrompt{id:"inbox".into(),label:"Review shared inbox".into(),prompt:"Review the shared inbox and summarize new items, decisions needed, and next actions.".into()},
@@ -98,7 +102,7 @@ impl AppSettings {
         let one_of=|s:&str,allowed:&[&str]|allowed.contains(&s);
         if !one_of(&self.theme,&["dark","light","system","papercolor-light","papercolor-dark"])||!(80..=150).contains(&self.ui_scale_percent)
             ||!one_of(&self.density,&["comfortable","compact"])||!one_of(&self.default_page,&["agents","sessions","usage","settings"])
-            ||!one_of(&self.preferred_provider,&["claude","codex"])||!one_of(&self.hierarchy_provider,&["","claude","codex"])
+            ||!one_of(&self.preferred_provider,&["claude","codex"])||!one_of(&self.close_behavior,&["stop","background"])||!one_of(&self.hierarchy_provider,&["","claude","codex"])
             ||!one_of(&self.hierarchy_project,&["","Agent App","Documentation"])||!one_of(&self.hierarchy_status,&["","idle","busy","paused"])
             ||!one_of(&self.hierarchy_view,&["tree","project"])||!one_of(&self.live_provider_filter,&["","claude","codex"])
             ||!one_of(&self.usage_provider,&["","claude","codex"])||!one_of(&self.usage_period,&["all","today","7","30"])

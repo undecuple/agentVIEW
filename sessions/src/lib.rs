@@ -616,6 +616,11 @@ impl SessionManager {
         self.get(id)
     }
     /// Stops every process this app started and returns how many were running. Marks them stopped (not exited).
+    /// Sessions whose process is still alive (exited ones are noticed first).
+    pub fn running_count(&mut self) -> Result<usize> {
+        self.refresh()?;
+        Ok(self.running.values().filter(|r| r.child.is_some()).count())
+    }
     pub fn stop_all(&mut self) -> Result<usize> {
         let ids: Vec<String> = self.running.iter().filter(|(_, r)| r.child.is_some()).map(|(id, _)| id.clone()).collect();
         for id in &ids {

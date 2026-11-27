@@ -6,7 +6,7 @@ and [usage source contracts](USAGE.md).
 
 ## Scope and persistence
 
-Settings cover app appearance, the opt-in simulated demo workspace, an export/import bundle of preferences and notes, startup page/preferred provider, remembered
+Settings cover app appearance, what closing the window does (stop sessions and quit by default, or keep running sessions in the background; see [live sessions](LIVE-SESSIONS.md)), the opt-in simulated demo workspace, an export/import bundle of preferences and notes, startup page/preferred provider, remembered
 hierarchy/session filters, terminal font/blink/bounded in-memory scrollback,
 usage defaults/optional visible-page refresh, and editable/reorderable quick
 presets. Defaults never start, resume, authenticate or configure a provider.

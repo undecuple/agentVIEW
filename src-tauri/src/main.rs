@@ -33,6 +33,7 @@ mod workspace_e2e;
 
 mod live;
 mod settings;
+mod background;
 
 struct WorkspaceState(std::result::Result<Mutex<Store>, String>);
 
@@ -154,6 +155,11 @@ fn main() {
     };
     let cfg = Arc::new(cfg);
     let note = Arc::new(note);
+    // A second launch hands over to a running instance and exits here, before any window is built.
+    let control = match background::startup(std::env::args().any(|a| a == "--quit")) {
+        background::Startup::Exit(code) => std::process::exit(code),
+        background::Startup::Run(listener) => Mutex::new(listener),
+    };
     tauri::Builder::default()
         .manage(WorkspaceState(workspace_store()))
         .manage(live::LiveState::default())
@@ -161,6 +167,13 @@ fn main() {
         .manage(docshare::DocsNote(note.clone()))
         .on_window_event(|window,event| {
             if window.label()=="workspace" && matches!(event,tauri::WindowEvent::CloseRequested { .. }) {
+                if background::wants_background(window.app_handle()) {
+                    if let tauri::WindowEvent::CloseRequested { api, .. }=event { api.prevent_close(); }
+                    background::hide(window.app_handle());
+                    #[cfg(feature="workspace-e2e")]
+                    eprintln!("WORKSPACE_E2E close=hidden");
+                    return;
+                }
                 let accepted=live::close_workspace(window,&window.state::<live::LiveState>());
                 #[cfg(feature="workspace-e2e")]
                 eprintln!("WORKSPACE_E2E close={}",if accepted{"accepted"}else{"deferred"});
@@ -169,7 +182,7 @@ fn main() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![workspace_snapshot, workspace_send, workspace_control, workspace_tick, workspace_open_docs, live::live_probe, live::live_snapshot, live::live_create, live::live_set_remote, live::live_rename, live::live_remove, docshare::docs_list, docshare::docs_check, docshare::docs_add, docshare::docs_remove, docshare::docs_read, live::live_activity, live::live_stop_all, review::review_files, review::review_load, review::review_mark, review::review_clear, notes::notes_list, claude_config::claude_config_view, gitview::git_repos, gitview::git_status, rclone::rclone_remotes, rclone::rclone_backup, notify::webhook_status, notify::webhook_save, notify::webhook_clear, notify::webhook_test, timelog::time_report, hooksignal::claude_hook_status, hooksignal::codex_hook_status, filesaccess::files_access_status, filesaccess::files_access_report, limits::claude_limits_status, live::session_changes, projwrite::project_file_preview, kanban::kanban_projects, kanban::kanban_board, kanban::kanban_alert, queues::queues_view, away::away_status, mailbox::mailbox_status, mailbox::mailbox_list, projwrite::project_file_write, notify::timeline_list, notify::attention_list, notify::desktop_notify, claude_settings::claude_settings_view, claude_settings::claude_inventory, claude_memory::claude_memory_list, claude_memory::claude_memory_read, claude_memory::claude_sessions_list, notes::notes_get, notes::notes_save, notes::notes_delete, notes::notes_revision, notes::notes_render, bundle::bundle_export, bundle::bundle_list, bundle::bundle_preview, bundle::bundle_import, live::live_start, live::live_read, live::live_write, live::live_resize, live::live_stop, live::usage_snapshot, live::usage_refresh, settings::app_settings_snapshot, settings::app_settings_save, settings::app_settings_reset, settings::app_settings_apply, settings::app_about, settings::app_diagnostics_export])
+        .invoke_handler(tauri::generate_handler![workspace_snapshot, workspace_send, workspace_control, workspace_tick, workspace_open_docs, live::live_probe, live::live_snapshot, live::live_create, live::live_set_remote, live::live_rename, live::live_remove, docshare::docs_list, docshare::docs_check, docshare::docs_add, docshare::docs_remove, docshare::docs_read, live::live_activity, live::live_stop_all, review::review_files, review::review_load, review::review_mark, review::review_clear, notes::notes_list, claude_config::claude_config_view, gitview::git_repos, gitview::git_status, rclone::rclone_remotes, rclone::rclone_backup, notify::webhook_status, notify::webhook_save, notify::webhook_clear, notify::webhook_test, timelog::time_report, hooksignal::claude_hook_status, hooksignal::codex_hook_status, filesaccess::files_access_status, filesaccess::files_access_report, limits::claude_limits_status, live::session_changes, projwrite::project_file_preview, kanban::kanban_projects, kanban::kanban_board, kanban::kanban_alert, queues::queues_view, away::away_status, mailbox::mailbox_status, mailbox::mailbox_list, projwrite::project_file_write, notify::timeline_list, notify::attention_list, notify::desktop_notify, claude_settings::claude_settings_view, claude_settings::claude_inventory, claude_memory::claude_memory_list, claude_memory::claude_memory_read, claude_memory::claude_sessions_list, notes::notes_get, notes::notes_save, notes::notes_delete, notes::notes_revision, notes::notes_render, bundle::bundle_export, bundle::bundle_list, bundle::bundle_preview, bundle::bundle_import, live::live_start, background::app_quit, live::live_read, live::live_write, live::live_resize, live::live_stop, live::usage_snapshot, live::usage_refresh, settings::app_settings_snapshot, settings::app_settings_save, settings::app_settings_reset, settings::app_settings_apply, settings::app_about, settings::app_diagnostics_export])
         .register_uri_scheme_protocol("workspace", move |_ctx,req| {
             #[cfg(feature="workspace-e2e")]
             eprintln!("WORKSPACE_REQUEST {}",req.uri());
@@ -217,7 +230,7 @@ fn main() {
                 Response::builder().status(500).body(b"internal error".to_vec()).expect("static response")
             })
         })
-        .setup(|app| {
+        .setup(move |app| {
             fix_unset_screen_dpi();
             #[cfg(all(feature="e2e",not(feature="workspace-e2e")))]
             build_viewer(app.handle(), "viewer://localhost/__e2e")?;
@@ -228,8 +241,11 @@ fn main() {
                 .on_navigation(|u| agent_app_workspace::trusted_window("workspace",u.as_str()))
                 .build()?;
             notify::start_monitor(app.handle().clone());
+            if let Some(listener) = control.lock().ok().and_then(|mut l| l.take()) { background::start_control(app.handle().clone(), listener); }
+            background::start_watcher(app.handle().clone());
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("failed to run");
+        .build(tauri::generate_context!())
+        .expect("failed to build")
+        .run(|_app, event| { if matches!(event, tauri::RunEvent::Exit) { background::cleanup(); } });
 }

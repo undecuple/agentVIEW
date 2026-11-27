@@ -104,7 +104,7 @@ in
 
 With Home Manager, put the same two values in `home.packages` instead.
 
-If you would rather not rebuild the system, a symlink works for the command: `ln -s ~/Applications/agentVIEW.AppImage ~/.local/bin/agentview` (make sure `~/.local/bin` is on your `PATH`), and a `~/.local/share/applications/agentview.desktop` file with `Exec=` pointing at the AppImage gives you the menu entry. On Wayland the window reports its program name (`.agentview-bin` for the AppImage), so the menu entry needs `StartupWMClass=.agentview-bin` and an `Icon=` pointing at an installed icon, or the dock shows a blank icon.
+If you would rather not rebuild the system, a symlink works for the command: `ln -s ~/Applications/agentVIEW.AppImage ~/.local/bin/agentview` (make sure `~/.local/bin` is on your `PATH`), and a `~/.local/share/applications/agentview.desktop` file with `Exec=` pointing at the AppImage gives you the menu entry. Arguments reach the app, so `agentview --quit` (or `~/Applications/agentVIEW.AppImage --quit`) stops a background instance; the program inside is called `agent-app`. On Wayland the window reports its program name (`.agentview-bin` for the AppImage), so the menu entry needs `StartupWMClass=.agentview-bin` and an `Icon=` pointing at an installed icon, or the dock shows a blank icon.
 
 ### 4. Just trying it, without installing
 

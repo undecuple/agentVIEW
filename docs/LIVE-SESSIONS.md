@@ -40,6 +40,72 @@ billing environment overrides are refused, but the app does not certify the
 billing method selected by external CLI configuration. Review Claude's native
 login/account prompts. No model/effort flags or permission bypasses are injected.
 
+## Keeping sessions running in the background
+
+Setting "When I close the window" (Settings, Workspace) has two choices.
+
+- **Stop my sessions and quit** (default): closing the window stops every session and
+  exits, as always.
+- **Keep running sessions in the background**: if at least one session is running,
+  closing the window only hides it; the app process keeps the sessions (they are its
+  child processes on its own terminals). With no running session, closing quits as
+  usual, and a hidden app quits by itself within a few seconds of its last session
+  ending, so no invisible idle process stays behind.
+
+Bringing the window back: start agentVIEW again. The second launch finds the first
+one through a private control socket (`control.sock` in the app data folder: folder
+mode 0700, socket 0600, refused if the path is a symlink or not a socket of yours; the
+user id of the other end is checked with `SO_PEERCRED` on both sides), asks it to show
+its window and exits. This happens with either close setting: **in the default mode too,
+a second launch is handed to the running instance** (its window is brought to the front)
+instead of opening a second app. The socket decision runs under a file lock
+(`control.lock`), so two launches at the same moment cannot both claim it.
+
+How to run `--quit`: the program is `agent-app`; the AppImage passes its arguments on, so
+`./agentVIEW-nixos-<version>-<revision>-x86_64.AppImage --quit` works, and so does
+`agentview --quit` when you made the `agentview` launcher from [INSTALL](INSTALL.md)
+(a `~/.local/bin/agentview` symlink to the AppImage, or the Nix wrapper script). From a
+source build it is `target/release/agent-app --quit`. `--quit` asks the running instance
+to stop all sessions and exit; it prints that, or "agentVIEW is not running" (exit 0), and
+exits 1 only if the socket cannot be used. The socket accepts only the words `show` and
+`quit` (one line, at most 14 characters), never runs or opens anything from a message
+and uses no network. It serves a few connections at once (at most 4; further ones are
+dropped), each limited to 2 seconds.
+
+What happens when the socket is not usable:
+
+- A socket left by a crashed instance (nobody answers, connection refused) is replaced.
+- If the first instance owns the socket but does not answer (busy, hung or quitting), the
+  second launch retries for a few seconds. If there is still no answer, it starts normally
+  without background control and says so on stderr, unless the first instance still holds
+  the sessions store: then it prints "does not answer ... holds the sessions store" on stderr
+  and exits with status 1, because two apps must not share the session store. It never
+  exits silently.
+- Any other problem with the socket (wrong owner, not a socket, no private folder) only
+  disables this feature and never blocks startup.
+- Closing the window hides it only if the socket file is still the one this app created
+  and its serving loop is alive (it stops after 5 failed accepts in a row). Otherwise
+  closing stops the sessions and quits as in the default mode.
+
+Terminating signals: SIGTERM, SIGHUP and SIGINT sent to a running app (hidden or not) take
+the same path as the Quit button: stop all sessions, remove the socket, exit. A second
+signal during that kills the app at once. If stopping the sessions fails the error is
+written to stderr and the app exits anyway. Output of a session that ended while the window
+was hidden is not kept: the idle watcher exits the app within a few seconds of the last
+session ending.
+
+The window is hidden, not destroyed, so what you see after "show" is exactly what you
+left: the session list, the selected session and its terminal, with the output
+buffer (256 KiB per session) intact; input keeps working. A "Stop all sessions and
+quit" button on Sessions and on Settings ends everything whatever the setting says
+(two clicks, the second confirms).
+
+Honest limits: there is no tray icon or other indicator while hidden, so you return by
+launching agentVIEW again (or find the process by name); sessions do not outlive the
+app process, so logging out, a crash or a reboot still ends them; an open Documents
+window is hidden and shown together with the workspace; the desktop-notification and
+webhook monitors keep running while hidden.
+
 Normal close/stop terminates the owned process group. Linux parent-death handling
 covers the CLI leader on abrupt app termination; independently detached tool
 processes are outside that guarantee. External Zellij sessions are not adopted.

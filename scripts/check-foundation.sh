@@ -26,6 +26,7 @@ run workspace-narrow env AGENT_APP_TEST_WIDTH=640 bash scripts/test-workspace.sh
 run live-cancel bash scripts/test-live-cancel.sh "$out/live-cancel"
 run live-sessions bash scripts/test-live.sh "$out/live"
 run live-narrow env AGENT_APP_TEST_WIDTH=640 bash scripts/test-live.sh "$out/live-narrow"
+run background bash scripts/test-background.sh "$out/background"
 run app-settings bash scripts/test-settings.sh "$out/settings"
 run app-settings-narrow env AGENT_APP_TEST_WIDTH=640 bash scripts/test-settings.sh "$out/settings-narrow"
 run normal-build cargo build --locked --offline -p agent-app

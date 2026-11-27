@@ -2,7 +2,7 @@
 (() => {
   const $=id=>document.getElementById(id),invoke=(cmd,args={})=>AppIPC.invoke(cmd,args);
   const clone=value=>JSON.parse(JSON.stringify(value));
-  const fields={theme:'pref-theme',ui_scale_percent:'pref-ui-scale',density:'pref-density',default_page:'pref-default-page',preferred_provider:'pref-provider',remember_filters:'pref-remember',demo_mode:'pref-demo',terminal_font_size:'pref-font-size',terminal_scrollback:'pref-scrollback',terminal_cursor_blink:'pref-cursor-blink',usage_provider:'pref-usage-provider',usage_period:'pref-usage-period',usage_refresh_seconds:'pref-refresh'};
+  const fields={theme:'pref-theme',ui_scale_percent:'pref-ui-scale',density:'pref-density',default_page:'pref-default-page',preferred_provider:'pref-provider',remember_filters:'pref-remember',demo_mode:'pref-demo',close_behavior:'pref-close',terminal_font_size:'pref-font-size',terminal_scrollback:'pref-scrollback',terminal_cursor_blink:'pref-cursor-blink',usage_provider:'pref-usage-provider',usage_period:'pref-usage-period',usage_refresh_seconds:'pref-refresh'};
   const numeric=new Set(['ui_scale_percent','terminal_font_size','terminal_scrollback','usage_refresh_seconds']);
   const checks=new Set(['remember_filters','demo_mode','terminal_cursor_blink']);
   const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
@@ -108,5 +108,14 @@
     }catch(e){$('settings-export-status').textContent=`Diagnostics unavailable: ${String(e)}`;}finally{aboutBusy=false;}
   }
   $('settings-export').onclick=async()=>{const b=$('settings-export');b.disabled=true;try{const result=await invoke('app_diagnostics_export');$('settings-export-status').textContent=`Report saved locally: ${result.path}`;$('settings-report').textContent=JSON.stringify(result.report,null,2);}catch(e){$('settings-export-status').textContent=`Report could not be exported: ${String(e)}`;}finally{b.disabled=false;}};
+  // Quit: two clicks (the second confirms). Stops every session and exits, whatever the close preference says.
+  for(const b of document.querySelectorAll('[data-app-quit]')){
+    const idle=b.textContent;let armed=0;
+    b.onclick=async()=>{
+      if(!armed){b.textContent='Confirm: stop all sessions and quit';armed=setTimeout(()=>{armed=0;b.textContent=idle;},6000);return;}
+      clearTimeout(armed);b.disabled=true;b.textContent='Quitting…';
+      try{await invoke('app_quit');}catch(e){b.disabled=false;armed=0;b.textContent=idle;notice(`Could not quit: ${String(e)}`);}
+    };
+  }
   AppPrefs.ready.then(snapshot=>{fill(snapshot);if(!snapshot){controls();notice('Preferences are unavailable. Reload saved preferences to retry.');}});
 })();
