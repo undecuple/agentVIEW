@@ -32,7 +32,7 @@ PY
     "$1" > "$2" 2>&1 & pid=$!
     trap '\''kill "$pid" 2>/dev/null || true'\'' EXIT
     for i in {1..400}; do
-      for page in usage usage-daily; do
+      for page in usage usage-daily tabs; do
         if grep -q "WORKSPACE_E2E capture=$page" "$2" && [ ! -e "${3%.png}-$page.png" ]; then import -window root "${3%.png}-$page.png"; fi
       done
       if grep -q "WORKSPACE_E2E phase=" "$2"; then import -window root "$3"; break; fi
