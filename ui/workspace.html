@@ -13,7 +13,6 @@
   <p class="nav-label">LIBRARY</p><button class="nav-item" id="show-docs" title="Read documents from folders you choose" aria-label="Documents"><span aria-hidden="true">▤</span><span class="nav-text">Documents</span><span class="nav-count" id="nc-docs" hidden></span></button><button class="nav-item" id="show-notes" title="Markdown notes library" aria-label="Notes"><span aria-hidden="true">✎</span><span class="nav-text">Notes</span><span class="nav-count" id="nc-notes" hidden></span></button>
   <p class="nav-label">TOOLS</p><button class="nav-item" id="show-git" title="Git status of repositories in your shared folders, read-only" aria-label="Git"><span aria-hidden="true">⎇</span><span class="nav-text">Git</span></button><button class="nav-item" id="show-review" title="Manual review of drafts" aria-label="Pre-PR review"><span aria-hidden="true">✓</span><span class="nav-text">Pre-PR review</span></button><button class="nav-item" id="show-cc" title="Claude Code configuration, read-only" aria-label="Claude config"><span aria-hidden="true">⚙</span><span class="nav-text">Claude config</span></button>
   <p class="nav-label">APP</p><button class="nav-item" id="show-settings" title="App settings" aria-label="Settings"><span aria-hidden="true">⚙</span><span class="nav-text">Settings</span></button>
-  <div class="rail-bottom"><span class="status-dot"></span> Local storage<small>Conversations saved on this device</small></div>
 </aside>
 <main id="main" tabindex="-1">
   <header class="topbar"><span>Workspace <span class="slash">/</span> <strong>Agents</strong></span><span class="demo-pill">SIMULATED AGENTS</span></header>
@@ -187,7 +186,7 @@
       <div class="settings-actions"><button id="review-save" type="submit" disabled>Save PASS (manual review)</button><button id="review-clear" type="button" disabled>Clear label</button><span id="review-meta" class="muted"></span></div></form>
   </section>
   <section id="settings" class="settings-panel" hidden aria-label="App settings">
-    <div class="panel-title"><h2>App settings</h2><button id="close-settings" type="button">Back to agents</button></div>
+    <div class="panel-title"><h2>App settings</h2></div>
     <p class="muted">Make agentVIEW yours. Preferences are saved on this device.</p>
     <p id="settings-notice" role="status" aria-live="polite">Loading preferences…</p>
     <form id="settings-form">
@@ -197,7 +196,7 @@
         <label>Spacing<select id="pref-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
       </div><p class="muted">Terminal Dark, Terminal Light and PaperColor Light/Dark across the workspace. Display scaling and interface scale work together.</p></fieldset>
       <fieldset><legend>Workspace</legend><div class="settings-grid">
-        <label>Open on startup<select id="pref-default-page"><option value="agents">Agents</option><option value="sessions">Sessions</option><option value="usage">Token usage</option><option value="settings">Settings</option></select></label>
+        <label>Open on startup<select id="pref-default-page"><option value="agents">Agents</option><option value="sessions">Sessions</option><option value="overview">Overview</option><option value="flow">Flow</option><option value="usage">Token usage</option><option value="notes">Notes</option><option value="docs">Documents</option><option value="settings">Settings</option></select></label>
         <label>Preferred provider<select id="pref-provider"><option value="claude">Claude Code</option><option value="codex">Codex</option></select></label>
         <label class="check-label"><input id="pref-remember" type="checkbox"> Remember hierarchy and session filters</label>
         <label class="check-label"><input id="pref-demo" type="checkbox"> Show the simulated demo workspace</label>
@@ -297,7 +296,7 @@
       <div class="control-block"><h3>Availability</h3><p>Idle agents reply automatically. Busy or paused agents keep messages queued.</p><div class="controls"><button data-state="idle">Idle</button><button data-state="busy">Busy</button><button data-state="paused">Pause</button></div></div>
       <div class="boundary-note"><span>◈</span><strong>A clear chain of responsibility</strong><p>Intake routes work. Coordinators manage projects. Subagents carry out and check assignments.</p></div>
     </aside>
-  </section><footer>agentVIEW <span>·</span> Local-first agent workspace <span>·</span> Preview build</footer>
+  </section><footer>agentVIEW <span>·</span> Local-first agent workspace</footer>
 </main><dialog id="pw-dialog" aria-labelledby="pw-title" class="card" style="max-width:720px;width:92vw">
   <h3 id="pw-title">Save into a project folder</h3>
   <p class="muted">The app writes only this one document, into the folder of a session you registered, and only after you confirm. Preview first; you can back up the existing file before it is replaced. Links and other file names are refused.</p>

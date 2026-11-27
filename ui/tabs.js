@@ -2,7 +2,7 @@
 // Pill tabs for the Settings page. Only changes which blocks are shown; no data or behaviour.
 (() => {
   const panel=document.getElementById('settings');if(!panel)return;
-  const groups=[['General',()=>[...document.querySelectorAll('#settings-form fieldset'),document.getElementById('settings-form')?.querySelector('.settings-save')]],
+  const groups=[['General',()=>[...document.querySelectorAll('#settings-form fieldset'),document.getElementById('settings-form')?.querySelector('.settings-save'),document.getElementById('quit-box')]],
     ['Data',()=>[document.getElementById('bundle-box'),document.getElementById('backup-box')]],
     ['Notifications',()=>['hook-box','desk-box','adv-notify','hookcfg-box','mail-box','codexcfg-box','limits-box'].map(id=>document.getElementById(id))],
     ['About',()=>[panel.querySelector('.settings-about'),document.getElementById('ih-box')]]];

@@ -47,7 +47,11 @@
     remember(patch){if(snapshot?.settings.remember_filters&&!snapshot.recovery){Object.assign(pendingFilters,patch);clearTimeout(filterTimer);filterTimer=setTimeout(()=>{const next=pendingFilters;pendingFilters={};if(!snapshot?.settings.remember_filters)return;this.patch(next).catch(e=>banner(`Filters were not saved: ${String(e)}`));},200);}},
     ready:null,
   };
-  window.AppNav={setCount(name,n){const el=document.getElementById('nc-'+name);if(!el)return;const v=Number.isSafeInteger(n)&&n>0?n:0;el.textContent=String(v);el.hidden=!v;},navigate(page){
+  const shown={};
+  window.AppNav={
+    // Runs fn every time `page` is shown, however it was opened (sidebar, keyboard, startup page, a link). Adding the same fn twice is ignored.
+    onShow(page,fn){const set=(shown[page]||=new Set());if(set.has(fn))return;set.add(fn);window.addEventListener('agentview:navigate',e=>{if(e.detail===page)fn();});},
+    setCount(name,n){const el=document.getElementById('nc-'+name);if(!el)return;const v=Number.isSafeInteger(n)&&n>0?n:0;el.textContent=String(v);el.hidden=!v;},navigate(page){
     if(!['agents','welcome','sessions','overview','flow','docs','notes','cc','git','review','usage','settings'].includes(page))return;
     if(page==='agents'&&document.body.dataset.demo!=='true')page='sessions';
     for(const [id,key] of [['deck','agents'],['live','sessions'],['overview','overview'],['flow','flow'],['welcome','welcome'],['docs','docs'],['notes','notes'],['cc','cc'],['git','git'],['review','review'],['usage','usage'],['settings','settings']])document.getElementById(id).hidden=page!==key;
@@ -60,7 +64,7 @@
     document.body.dataset.page=page;document.scrollingElement.scrollTop=0;
     window.dispatchEvent(new CustomEvent('agentview:navigate',{detail:page}));
   }};
-  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-docs','docs'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents'],['close-settings','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
+  for(const [id,page] of [['show-agents','agents'],['show-live','sessions'],['show-overview','overview'],['show-flow','flow'],['show-docs','docs'],['show-notes','notes'],['show-cc','cc'],['show-git','git'],['show-review','review'],['show-usage','usage'],['show-settings','settings'],['back-demo','agents'],['close-usage','agents']])document.getElementById(id).onclick=()=>AppNav.navigate(page);
   media.addEventListener('change',appearance);
   AppPrefs.ready=Promise.all([loaded,dom]).then(([next])=>accept(next)).catch(()=>{banner('Preferences could not be loaded. Built-in defaults are in use.');return null;});
   // Register after other deferred scripts have attached their preference listeners.
@@ -81,12 +85,13 @@
   window.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('rail-toggle').onclick=()=>{pref=isOn()?'expanded':'collapsed';try{localStorage.setItem(key,pref);}catch{}apply();};narrow.addEventListener('change',apply);});
 })();
 
-;(()=>{ // Keyboard: Alt+1..9 opens the nth sidebar page; Esc closes the open section or leaves the field. Not inside a terminal.
+;(()=>{ // Keyboard: Alt+1..9 opens the nth sidebar page, Alt+0 Settings; Esc closes the open section or leaves the field. Not inside a terminal.
   document.addEventListener('keydown',e=>{
     if(e.target.closest&&e.target.closest('.xterm,#live-terminal'))return;
     if(e.altKey&&!e.ctrlKey&&!e.metaKey&&/^[1-9]$/.test(e.key)){
       const items=[...document.querySelectorAll('.rail .nav-item')].filter(b=>b.tagName==='BUTTON'&&!b.hidden&&b.offsetParent!==null);
       const b=items[Number(e.key)-1];if(b){e.preventDefault();b.click();}
+    }else if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key==='0'){e.preventDefault();AppNav.navigate('settings');
     }else if(e.key==='Escape'&&!e.altKey&&!e.ctrlKey&&!e.metaKey){
       const d=e.target.closest?.('details[open]');
       if(d&&d.id!=='live-setup-never'){d.open=false;d.querySelector('summary')?.focus();}else if(e.target.blur&&e.target!==document.body)e.target.blur();

@@ -49,6 +49,6 @@
   $('tasks-reload').onclick=load;
   $('taskscfg-check').onclick=status;
   $('taskscfg-copy').onclick=()=>{const t=$('taskscfg-snippet');t.focus();t.select();try{document.execCommand('copy');$('taskscfg-state').textContent='Copied. Paste it into your Claude settings.';}catch{$('taskscfg-state').textContent='Select the text and copy it.';}};
-  $('show-settings').addEventListener('click',status);
+  AppNav.onShow('settings',status);
   window.addEventListener('agentview:navigate',e=>{if(e.detail==='flow')start();else stop();});
 })();

@@ -20,7 +20,7 @@
   async function load(a={}){try{draw(await invoke('away_status',a));}catch(e){$('away-state').textContent=window.friendly('Could not update away mode',e);}}
   $('away-toggle').onclick=()=>load({away:!away});
   $('away-seen').onclick=()=>load({ack:true});
-  $('show-overview').addEventListener('click',()=>{load();clearInterval(timer);timer=setInterval(()=>{if(!$('away-card').offsetParent){clearInterval(timer);return;}load();},5000);});
+  AppNav.onShow('overview',()=>{load();clearInterval(timer);timer=setInterval(()=>{if(!$('away-card').offsetParent){clearInterval(timer);return;}load();},5000);});
   try{if(localStorage.getItem('av-new-note')!=='1')$('new-note').hidden=false;}catch{$('new-note').hidden=false;}
   $('new-note-close').onclick=()=>{$('new-note').hidden=true;try{localStorage.setItem('av-new-note','1');}catch{}};
   load();

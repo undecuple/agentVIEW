@@ -27,6 +27,14 @@ fn absent_settings_are_defaults_without_autowrite_and_unicode_roundtrips_after_r
 }
 
 #[test]
+fn every_startup_page_choice_is_accepted(){
+    for page in ["agents","sessions","overview","flow","usage","notes","docs","settings"]{
+        let mut s=AppSettings::default();s.default_page=page.into();assert!(s.validate().is_ok(),"{page}");
+    }
+    let mut s=AppSettings::default();s.default_page="git".into();assert!(s.validate().is_err());
+}
+
+#[test]
 fn every_closed_choice_and_numeric_limit_is_validated_before_mutation(){
     let (_temp,_path,mut store)=fixture();let defaults=AppSettings::default();
     let mut invalid=Vec::new();

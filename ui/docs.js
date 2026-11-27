@@ -90,5 +90,5 @@
   };
   $('docs-view-close').onclick = () => { $('docs-view').hidden = true; $('docs-view-body').replaceChildren(); };
   $('docs-filter').oninput = () => { if (data) drawFiles(); };
-  $('show-docs').addEventListener('click', load);
+  AppNav.onShow('docs', load);
 })();

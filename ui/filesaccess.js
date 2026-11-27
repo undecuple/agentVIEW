@@ -23,6 +23,6 @@
   $('files-kind').onchange=load;$('files-reload').onclick=load;
   $('filescfg-check').onclick=status;
   $('filescfg-copy').onclick=()=>{const t=$('filescfg-snippet');t.focus();t.select();try{document.execCommand('copy');$('filescfg-state').textContent='Copied. Paste it into your Claude settings.';}catch{$('filescfg-state').textContent='Select the text and copy it.';}};
-  $('show-settings').addEventListener('click',status);
+  AppNav.onShow('settings',status);
   window.addEventListener('agentview:navigate',e=>{if(e.detail==='flow')start();else stop();});
 })();

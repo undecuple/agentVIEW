@@ -19,7 +19,7 @@
     $('cc-untrusted').textContent=String(view.projects.filter(p=>p.trusted===false).length);$('cc-missing').textContent=String(view.projects.filter(p=>!p.exists).length);
     $('cc-mcp').textContent=mcpText(view.global_mcp);draw();
   }
-  $('cc-filter').oninput=draw;$('cc-reload').onclick=load;$('show-cc').addEventListener('click',load);
+  $('cc-filter').oninput=draw;$('cc-reload').onclick=load;AppNav.onShow('cc',load);
 })();
 (() => {
   const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
@@ -70,6 +70,6 @@
   for(const b of document.querySelectorAll('#cc-tabs [data-cc-tab]'))b.onclick=()=>tab(b.dataset.ccTab);
   document.getElementById('cc-tabs').addEventListener('keydown',e=>{const bs=[...document.querySelectorAll('#cc-tabs [data-cc-tab]')];const cur=bs.findIndex(b=>b.tabIndex===0);let j=-1;if(e.key==='ArrowRight')j=(cur+1)%bs.length;else if(e.key==='ArrowLeft')j=(cur-1+bs.length)%bs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=bs.length-1;if(j<0)return;e.preventDefault();tab(bs[j].dataset.ccTab);bs[j].focus();});
   $('ci-filter').oninput=drawInv;
-  $('show-cc').addEventListener('click',()=>tab('projects'));
+  AppNav.onShow('cc',()=>tab('projects'));
   window.AppCcTabs={select:tab};
 })();

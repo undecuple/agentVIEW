@@ -27,5 +27,5 @@
   $('backup-dry').onclick=()=>go(false);
   $('backup-run').onclick=()=>{if(previewed&&previewed===$('backup-remote').value)$('backup-run-confirm').hidden=false;};
   $('backup-run-confirm').onclick=()=>{$('backup-run-confirm').hidden=true;go(true);};
-  $('show-settings').addEventListener('click',load);
+  AppNav.onShow('settings',load);
 })();

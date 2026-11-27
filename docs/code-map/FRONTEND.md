@@ -4,7 +4,7 @@ The workspace window loads one HTML page, `ui/workspace.html`, and a set of plai
 
 ## Pages
 
-`AppNav.navigate(page)` in `ui/prefs.js` shows one section and hides the rest. Valid page keys: `agents`, `sessions`, `overview`, `notes`, `cc`, `review`, `usage`, `settings`. An unknown key is ignored. `agents` is the simulated demo and falls back to `sessions` unless demo mode is on.
+`AppNav.navigate(page)` in `ui/prefs.js` shows one section and hides the rest. Valid page keys: `agents`, `welcome`, `sessions`, `overview`, `flow`, `docs`, `notes`, `cc`, `git`, `review`, `usage`, `settings`. An unknown key is ignored. `AppNav.onShow(page, fn)` runs `fn` every time that page is shown, however it was opened (sidebar click, Alt+digit, the startup page, a link from another page); page scripts load their data through it rather than through a click on the sidebar button. `agents` is the simulated demo and falls back to `sessions` unless demo mode is on.
 
 | Page key | Section id | Sidebar button | Script |
 |---|---|---|---|
@@ -31,7 +31,7 @@ Page details added later: `away.js` is the Overview "I'm stepping away" card (`a
 
 - `AppIPC.invoke(command, args)`: wraps the Tauri internal invoke.
 - `AppPrefs`: `snapshot`, `current`, `save`, `reset`, `reload`, `patch`, `remember`, `ready`. Writes go through a queue with an optimistic revision number.
-- `AppNav.navigate(page)`: described above.
+- `AppNav.navigate(page)` and `AppNav.onShow(page, fn)`: described above.
 - Events on `window`: `agentview:navigate` (each page script starts or stops its polling), `agentview:preferences`, `agentview:theme` (the terminal re-themes).
 
 ## Themes and styles
