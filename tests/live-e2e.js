@@ -131,8 +131,19 @@
     $('show-live').click();assert(!$('live').hidden&&$('deck').hidden,'live view distinct from simulated chats');
     assert(document.querySelector('.demo-note').hidden&&document.querySelector('.demo-pill').textContent==='LOCAL CLI SESSIONS','live view has no simulated-session claim');
     for(const provider of ['claude','codex']){
-      $('live-provider').value=provider;$('live-provider').dispatchEvent(new Event('change'));$('live-probe').click();
+      $('live-provider').value=provider;$('live-provider').dispatchEvent(new Event('change'));
+      if(TEST_PHASE==='first')$('live-probe').click();
+      // After the restart nothing is inspected again: the earlier inspection is restored because the CLI file is unchanged.
+      else await until(()=>$('live-tool').textContent.includes('unchanged since (checked by hash)')&&!$('live-forget').hidden,'remembered inspection restored after restart without Inspect');
       await until(()=>!$('live-register').disabled&&$('live-tool').textContent.toLowerCase().includes(`synthetic ${provider}`),'probe provider fixture');
+    }
+    if(TEST_PHASE!=='first')report('check','remembered inspection restored for both providers');
+    if(TEST_PHASE!=='first'){
+      // Forget deletes the stored inspection: the page asks for Inspect again, and a new Inspect restores the tool.
+      $('live-provider').value='codex';$('live-provider').dispatchEvent(new Event('change'));$('live-forget').click();
+      await until(()=>$('live-tool').textContent.includes('has not been inspected')&&$('live-forget').hidden&&$('live-register').disabled,'forget asks for Inspect again');
+      $('live-probe').click();await until(()=>!$('live-register').disabled&&$('live-tool').textContent.toLowerCase().includes('synthetic codex'),'inspect again after forget');
+      report('check','forget deletes the remembered inspection; Inspect restores it');
     }
     let sessions=await snapshot();
     if(TEST_PHASE==='first'){

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-tools"
+description = "Enables the live_tools command without any pre-configured scope."
+commands.allow = ["live_tools"]
+
+[[permission]]
+identifier = "deny-live-tools"
+description = "Denies the live_tools command without any pre-configured scope."
+commands.deny = ["live_tools"]

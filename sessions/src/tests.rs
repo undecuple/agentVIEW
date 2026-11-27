@@ -423,3 +423,142 @@ fn exit_status_is_kept_until_the_next_start_and_stop_all_stops_everything() {
     assert_eq!(manager.stop_all().unwrap(), 1);
     assert_eq!(manager.get(&a.id).unwrap().status, "stopped");
 }
+
+// Remembered inspection: restored only when the same file is unchanged; any difference asks again.
+fn remember(fixture: &Fixture) -> String {
+    let mut m = fixture.manager();
+    let identity = tool_identity(&fixture.executable).unwrap();
+    let sha = file_sha256(&fixture.executable).unwrap();
+    assert!(m.remember_tool(Provider::Claude, &identity, &sha).unwrap());
+    assert!(!m.remember_tool(Provider::Claude, "other-identity", &sha).unwrap(), "a record is kept only for the identity that was hashed");
+    sha
+}
+fn pending(fixture: &Fixture) -> (SessionManager, RememberedTool) {
+    let m = SessionManager::open_unconfigured(&fixture.dir.join("sessions")).unwrap();
+    let mut p = m.remembered_pending().unwrap(); assert_eq!(p.len(), 1);
+    (m, p.remove(0))
+}
+
+#[test]
+fn remembered_inspection_restores_when_the_file_is_unchanged() {
+    let fixture = Fixture::new(); let sha = remember(&fixture);
+    let (mut m, r) = pending(&fixture);
+    assert!(m.tool_statuses().is_empty(), "nothing is configured before the restore");
+    assert_eq!(quick_check(&r), Ok(()));
+    m.adopt_remembered(&r, &file_sha256(&r.executable).unwrap()).unwrap();
+    assert_eq!(sha, file_sha256(&r.executable).unwrap());
+    let st = m.tool_statuses(); assert_eq!(st.len(), 1);
+    assert!(st[0].remembered && st[0].version == "fixture-1" && st[0].changed.is_none());
+    assert!(m.remembered_pending().unwrap().is_empty(), "a configured provider is not restored again");
+    // The restored tool really works: a registered session starts with it.
+    let rec = m.create("Remembered", &fixture.a).unwrap();
+    let live = m.start(&rec.id).unwrap(); output(&mut m, &live, "READY:"); m.shutdown().unwrap();
+}
+
+#[test]
+fn remembered_inspection_refuses_a_changed_file() {
+    let fixture = Fixture::new(); remember(&fixture);
+    // Same content written again: the identity (modification time) changes.
+    std::thread::sleep(Duration::from_millis(20));
+    let body = fs::read(&fixture.executable).unwrap(); fs::write(&fixture.executable, &body).unwrap();
+    let (mut m, r) = pending(&fixture);
+    assert_eq!(quick_check(&r), Err("the file changed".to_string()));
+    assert!(m.adopt_remembered(&r, &file_sha256(&r.executable).unwrap()).is_err());
+    assert!(m.tool_statuses().is_empty());
+}
+
+#[test]
+fn remembered_inspection_refuses_changed_contents() {
+    let fixture = Fixture::new(); remember(&fixture);
+    let (mut m, r) = pending(&fixture);
+    let wrong = "0".repeat(64);
+    assert_eq!(m.adopt_remembered(&r, &wrong), Err("the file contents changed".to_string()));
+    assert!(m.tool_statuses().is_empty());
+}
+
+#[test]
+fn remembered_inspection_refuses_a_symlink_a_writable_file_and_a_missing_file() {
+    let fixture = Fixture::new(); remember(&fixture);
+    let (_, r) = pending(&fixture);
+    let moved = fixture.dir.join("moved-cli");
+    fs::rename(&fixture.executable, &moved).unwrap();
+    assert_eq!(quick_check(&r), Err("no longer found".to_string()));
+    symlink(&moved, &fixture.executable).unwrap();
+    assert_eq!(quick_check(&r), Err("the path is now a link".to_string()));
+    assert!(file_sha256(&fixture.executable).is_err(), "hashing never follows a link");
+    fs::remove_file(&fixture.executable).unwrap(); fs::rename(&moved, &fixture.executable).unwrap();
+    fs::set_permissions(&fixture.executable, fs::Permissions::from_mode(0o720)).unwrap();
+    assert_eq!(quick_check(&r), Err("the file is writable by others".to_string()));
+    fs::set_permissions(&fixture.executable, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(quick_check(&r), Ok(()));
+}
+
+#[test]
+fn remembered_inspection_refuses_a_tampered_row_and_an_oversized_file() {
+    // A row written by something other than Inspect (the store has no signature) is caught by the hash check.
+    let fixture = Fixture::new(); let sha = remember(&fixture);
+    { let m = fixture.manager(); m.connection.execute("UPDATE reviewed_tools SET sha256=?1", params!["a".repeat(64)]).unwrap(); }
+    let (mut m, r) = pending(&fixture);
+    assert_eq!(quick_check(&r), Ok(()), "path, identity and modes still match");
+    assert_eq!(m.adopt_remembered(&r, &sha), Err("the file contents changed".to_string()));
+    assert!(m.tool_statuses().is_empty());
+    // A file over the cap is never hashed, so it is never restored.
+    let big = fixture.dir.join("big-cli");
+    let f = fs::File::create(&big).unwrap(); f.set_len(MAX_HASH_BYTES + 1).unwrap(); drop(f);
+    assert_eq!(file_sha256(&big), Err("The CLI file is too large to verify".to_string()));
+}
+
+#[test]
+fn remembered_inspection_allows_an_owner_writable_file_but_refuses_unsafe_folders() {
+    let fixture = Fixture::new(); remember(&fixture);
+    let (_, r) = pending(&fixture);
+    // Owner-writable is allowed: a CLI installed in your own home is normally writable by you.
+    fs::set_permissions(&fixture.executable, fs::Permissions::from_mode(0o755)).unwrap();
+    assert_eq!(quick_check(&r), Ok(()));
+    // A folder that group or others can write to could have the file swapped: refused.
+    fs::set_permissions(&fixture.dir, fs::Permissions::from_mode(0o770)).unwrap();
+    assert_eq!(quick_check(&r), Err("its folder is writable by others".to_string()));
+    fs::set_permissions(&fixture.dir, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(quick_check(&r), Ok(()));
+    // The same file reached through a symlinked parent folder is refused, even when the row names that path.
+    let real = fixture.dir.join("real"); fs::create_dir(&real).unwrap();
+    let cli = real.join("cli"); fs::copy(&fixture.executable, &cli).unwrap();
+    fs::set_permissions(&cli, fs::Permissions::from_mode(0o700)).unwrap();
+    let link = fixture.dir.join("link"); symlink(&real, &link).unwrap();
+    let through = link.join("cli");
+    { let m = fixture.manager(); m.connection.execute("UPDATE reviewed_tools SET executable=?1, identity=?2, sha256=?3",
+        params![through.to_string_lossy(), tool_identity(&cli).unwrap(), file_sha256(&cli).unwrap()]).unwrap(); }
+    let (_, r) = pending(&fixture);
+    assert_eq!(quick_check(&r), Err("the path now resolves elsewhere".to_string()));
+}
+
+#[test]
+fn a_restored_tool_is_verified_before_start_and_forget_deletes_it() {
+    let fixture = Fixture::new(); let sha = remember(&fixture);
+    let (mut m, r) = pending(&fixture);
+    m.adopt_remembered(&r, &sha).unwrap();
+    let a = m.create("A", &fixture.a).unwrap();
+    let t = m.restored_target(&a.id).unwrap().expect("a restored tool is re-hashed before start");
+    assert_eq!((t.executable.as_path(), t.sha256.as_str()), (fixture.executable.as_path(), sha.as_str()));
+    m.drop_restored(Provider::Claude);
+    assert!(m.tool_statuses().is_empty(), "a mismatch drops the restored tool");
+    assert!(m.start(&a.id).is_err(), "and the start asks for Inspect");
+    m.adopt_remembered(&r, &sha).unwrap();
+    assert!(m.forget_tool(Provider::Claude).unwrap());
+    assert!(m.tool_statuses().is_empty() && m.remembered_pending().unwrap().is_empty());
+    assert!(!m.forget_tool(Provider::Claude).unwrap(), "nothing left to forget");
+    // A tool inspected in this run is not a restored one and is never dropped by a restore mismatch.
+    drop(m); let mut m = fixture.manager();
+    assert!(m.restored_target(&a.id).unwrap().is_none());
+    m.drop_restored(Provider::Claude); assert_eq!(m.tool_statuses().len(), 1);
+}
+
+#[test]
+fn a_store_without_the_remembered_table_gains_it_on_open() {
+    let fixture = Fixture::new();
+    { let m = fixture.manager(); m.connection.execute_batch("DROP TABLE reviewed_tools;").unwrap(); }
+    let m = SessionManager::open_unconfigured(&fixture.dir.join("sessions")).unwrap();
+    assert!(m.remembered_pending().unwrap().is_empty());
+    drop(m); remember(&fixture);
+    assert_eq!(pending(&fixture).1.version, "fixture-1");
+}

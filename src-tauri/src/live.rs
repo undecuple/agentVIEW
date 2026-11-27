@@ -11,7 +11,7 @@ pub struct LiveState {
     closing: Arc<AtomicBool>,
 }
 #[derive(Serialize)]
-pub struct ToolInfo { provider: Provider, executable: String, version: String }
+pub struct ToolInfo { provider: Provider, executable: String, version: String, remembered: bool }
 
 async fn manager<T:Send+'static>(window:tauri::WebviewWindow,state:&LiveState,f:impl FnOnce(&mut SessionManager)->Result<T,String>+Send+'static)->Result<T,String>{
     super::authorized(&window)?;
@@ -69,7 +69,7 @@ fn capture_cli(path:&std::path::Path,args:&[&str],limit:u64)->Result<String,Stri
 #[tauri::command]
 pub async fn live_probe(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,provider:String)->Result<ToolInfo,String>{
     super::authorized(&window)?;let provider=Provider::parse(&provider)?;
-    manager(window,&state,move|m|{
+    let probed=manager(window.clone(),&state,move|m|{
         let path=executable(provider)?;let version=capture_cli(&path,&["--version"],4096)?.trim().to_string();
         if version.is_empty()||version.len()>200||version.chars().any(char::is_control){return Err("Unrecognized CLI version output".into());}
         let help=capture_cli(&path,&["--help"],65536)?;
@@ -78,8 +78,65 @@ pub async fn live_probe(window:tauri::WebviewWindow,state:tauri::State<'_,LiveSt
             Provider::Codex=>{if !help.contains("app-server")||!help.contains("resume")||!capture_cli(&path,&["resume","--help"],65536)?.contains("--no-daemon"){return Err("Codex CLI lacks required native resume/app-server capabilities".into());}},
             _=>(),
         }
-        m.configure_provider(provider,&path,&version)?;m.set_capabilities(provider,help.contains("--name"),help.contains("--remote-control"));Ok(ToolInfo{provider,executable:path.to_string_lossy().into_owned(),version})
-    }).await
+        m.configure_provider(provider,&path,&version)?;m.set_capabilities(provider,help.contains("--name"),help.contains("--remote-control"));
+        let identity=agent_app_sessions::tool_identity(&path)?;
+        Ok((ToolInfo{provider,executable:path.to_string_lossy().into_owned(),version,remembered:false},path,identity))
+    }).await?;
+    let (info,path,identity)=probed;
+    // Remember what the person reviewed. The file is hashed outside the manager lock and kept only if its identity did
+    // not change while hashing; failing to remember never fails the inspection (the next start just asks again).
+    let id2=identity.clone();
+    let sha=tauri::async_runtime::spawn_blocking(move||{
+        let sha=agent_app_sessions::file_sha256(&path)?;
+        if agent_app_sessions::tool_identity(&path)?!=id2{return Err("The CLI changed while it was being verified".to_string());}
+        Ok::<_,String>(sha)
+    }).await.map_err(|_| "Verification failed".to_string()).and_then(|r|r);
+    if let Ok(sha)=sha{let _=manager(window,&state,move|m|m.remember_tool(provider,&identity,&sha)).await;}
+    Ok(info)
+}
+/// Restores remembered inspections whose file is unchanged (cheap checks first, then SHA-256 off the manager lock,
+/// then every check again under the lock). Returns the providers whose file changed, with the reason.
+/// Hash results for this app run, keyed by (path, identity), at most 16. A failure is never rehashed while the file keeps
+/// the same identity; a success is reused when restoring (navigation), but the check right before a spawn always rehashes.
+static VERIFIED:std::sync::Mutex<Vec<(PathBuf,String,Result<String,String>)>>=std::sync::Mutex::new(Vec::new());
+fn verify_cached(path:&std::path::Path,reuse_success:bool)->Result<String,String>{
+    let id_now=agent_app_sessions::tool_identity(path)?;
+    if let Some((_,_,r))=VERIFIED.lock().ok().and_then(|v|v.iter().find(|(p,i,_)|p==path&&*i==id_now).cloned()){
+        if r.is_err()||reuse_success{return r;}
+    }
+    let r=agent_app_sessions::file_sha256(path);
+    if agent_app_sessions::tool_identity(path).ok().as_deref()!=Some(id_now.as_str()){return Err("the file changed while it was being verified".into());}
+    if let Ok(mut v)=VERIFIED.lock(){v.retain(|(p,i,_)|!(p==path&&*i==id_now));v.push((path.to_path_buf(),id_now,r.clone()));if v.len()>16{drop(v.remove(0));}}
+    r
+}
+async fn restore_tools(window:&tauri::WebviewWindow,state:&LiveState)->Result<Vec<agent_app_sessions::ToolStatus>,String>{
+    let pending=manager(window.clone(),state,|m|m.remembered_pending()).await?;
+    let mut changed=Vec::new();
+    for r in pending{
+        let rc=r.clone();
+        let sha=tauri::async_runtime::spawn_blocking(move||{agent_app_sessions::quick_check(&rc)?;verify_cached(&rc.executable,true)})
+            .await.map_err(|_| "Verification failed".to_string()).and_then(|x|x);
+        let outcome=match sha{Ok(sha)=>{let r2=r.clone();manager(window.clone(),state,move|m|Ok(m.adopt_remembered(&r2,&sha))).await?},Err(e)=>Err(e)};
+        if let Err(reason)=outcome{changed.push(agent_app_sessions::ToolStatus{provider:r.provider,executable:r.executable.to_string_lossy().into_owned(),version:r.version.clone(),remembered:false,changed:Some(reason)});}
+    }
+    Ok(changed)
+}
+/// Forget the remembered inspection for one provider (the person's choice on the Live page). This run stops using a
+/// restored copy too, so the next start asks for Inspect.
+#[tauri::command(async)]
+pub async fn live_forget_tool(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,provider:String)->Result<bool,String>{
+    super::authorized(&window)?;let provider=Provider::parse(&provider)?;
+    manager(window,&state,move|m|m.forget_tool(provider)).await
+}
+/// The CLIs ready for this run: inspected now, or restored from the person's earlier inspection when the same file is
+/// unchanged. Never runs a CLI. Changed ones are listed with the reason so the page can ask for a new inspection.
+#[tauri::command(async)]
+pub async fn live_tools(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<agent_app_sessions::ToolStatus>,String>{
+    super::authorized(&window)?;
+    let changed=restore_tools(&window,&state).await?;
+    let mut list=manager(window,&state,|m|Ok(m.tool_statuses())).await?;
+    list.extend(changed.into_iter().filter(|c|!list.iter().any(|t|t.provider==c.provider)).collect::<Vec<_>>());
+    Ok(list)
 }
 #[tauri::command]
 pub async fn live_set_remote(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String,enabled:bool)->Result<SessionInfo,String>{manager(window,&state,move|m|m.set_remote_control(&id,enabled)).await}
@@ -126,6 +183,19 @@ fn now_s()->i64{std::time::SystemTime::now().duration_since(std::time::UNIX_EPOC
 pub async fn live_start(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String)->Result<SessionInfo,String>{
     // Fails closed: waits for the workspace lock; a poisoned lock or unreadable settings mean the strict check (setting off).
     let follow={use tauri::Manager;let ws=window.state::<super::WorkspaceState>();ws.0.as_ref().ok().and_then(|s|s.lock().ok().and_then(|s|s.settings_snapshot().ok())).is_some_and(|s|s.settings.follow_cli_updates)};
+    // A remembered inspection is restored first when the file is unchanged (read-only; no CLI runs here).
+    let _=restore_tools(&window,&state).await;
+    // A tool restored from a remembered inspection is re-hashed right before it is used (off the manager lock); the
+    // start below then re-checks its identity under the lock. A mismatch drops it and asks for a new inspection.
+    let sid0=id.clone();
+    if let Some(t)=manager(window.clone(),&state,move|m|m.restored_target(&sid0)).await?{
+        let path=t.executable.clone();
+        let sha=tauri::async_runtime::spawn_blocking(move||verify_cached(&path,false)).await.map_err(|_| "Verification failed".to_string()).and_then(|r|r);
+        if sha.as_deref()!=Ok(t.sha256.as_str()){
+            let p=t.provider;let _=manager(window.clone(),&state,move|m|{m.drop_restored(p);Ok(())}).await;
+            return Err(format!("The remembered CLI changed since your Inspect ({}); inspect it again before starting",sha.err().unwrap_or_else(||"its contents differ".into())));
+        }
+    }
     let sid=id.clone();let info=manager(window,&state,move|m|m.start_with(&id,follow)).await?;
     if let Ok(mut s)=STARTED.lock(){s.retain(|(i,_)|*i!=sid);s.push((sid,now_s()));}
     Ok(info)
