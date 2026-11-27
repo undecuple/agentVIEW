@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-use-conversation"
+description = "Enables the live_use_conversation command without any pre-configured scope."
+commands.allow = ["live_use_conversation"]
+
+[[permission]]
+identifier = "deny-live-use-conversation"
+description = "Denies the live_use_conversation command without any pre-configured scope."
+commands.deny = ["live_use_conversation"]

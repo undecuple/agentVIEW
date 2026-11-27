@@ -1,5 +1,5 @@
 //! Trusted workspace only. Provider identity comes from saved native metadata.
-use agent_app_sessions::{Provider, ReadResult, SessionInfo, SessionManager};
+use agent_app_sessions::{follow, Provider, ReadResult, SessionInfo, SessionManager};
 use serde::Serialize;
 use std::{io::Read, path::PathBuf, process::{Command, Stdio}, sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}}, time::{Duration,Instant}};
 
@@ -162,6 +162,81 @@ fn usage_roots()->agent_app_sessions::UsageRoots {
     let root=|key:&str,default:&str| std::env::var_os(key).map(PathBuf::from)
         .or_else(||home.as_ref().map(|h|h.join(default))).filter(|p|p.is_absolute());
     agent_app_sessions::UsageRoots {claude:root("CLAUDE_CONFIG_DIR",".claude"),codex:root("CODEX_HOME",".codex")}
+}
+/// Which conversation each registered Claude session really continues. Reads only the project's transcript folder
+/// (names, times, and the cwd/sessionId fields of at most 64 KiB per candidate) at most every 30 s per session, outside
+/// the session manager lock. A running session whose folder is not shared and that wrote exactly one newer conversation
+/// since it started is switched to it, after the folder is read again right then; anything else is only reported.
+/// When a cap is hit (5000 entries, 16 opened files) nothing is switched automatically. Codex sessions are not listed.
+#[derive(Serialize)]
+pub struct FollowStatus { app_session_id:String, running:bool, saved:String, decision:follow::Decision, newer:Option<follow::Conversation>, candidates:usize, capped:bool, reason:String, followed:Option<follow::FollowEvent> }
+type FollowCache=std::collections::HashMap<String,(Instant,String,bool,follow::Verdict)>;
+static FOLLOW_CACHE:Mutex<Option<FollowCache>>=Mutex::new(None);
+fn follow_every()->Duration{
+    #[cfg(feature="workspace-e2e")]
+    if std::env::var_os("AGENT_APP_TEST_LIVE").is_some(){return Duration::from_millis(200);}
+    Duration::from_secs(30)
+}
+#[tauri::command]
+pub async fn live_follow_check(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<Vec<FollowStatus>,String>{
+    let targets=manager(window.clone(),&state,|m|m.follow_targets()).await?;
+    let root=usage_roots().claude;
+    let checked=tauri::async_runtime::spawn_blocking(move||{
+        let mut cache=FOLLOW_CACHE.lock().map_err(|_| "Follow cache unavailable".to_string())?;let cache=cache.get_or_insert_with(Default::default);
+        cache.retain(|id,_|targets.iter().any(|t|&t.app_session_id==id));
+        Ok::<_,String>(targets.into_iter().map(|t|{
+            let running=t.started.is_some();
+            let fresh=cache.get(&t.app_session_id).filter(|(at,saved,run,_)|at.elapsed()<follow_every()&&*saved==t.saved&&*run==running).map(|c|c.3.clone());
+            let v=fresh.unwrap_or_else(||{let v=follow::check(root.as_deref(),&t);cache.insert(t.app_session_id.clone(),(Instant::now(),t.saved.clone(),running,v.clone()));v});
+            (t,v)
+        }).collect::<Vec<_>>())
+    }).await.map_err(|_| "Follow check failed")??;
+    let mut out=Vec::new();
+    for (t,mut v) in checked{
+        let mut saved=t.saved.clone();
+        if v.decision==follow::Decision::Follow{
+            if let Some(new)=v.newer.clone(){
+                // Never act on a cached verdict: copy the session again, re-read the folder now (off the lock), then switch.
+                let fresh=manager(window.clone(),&state,|m|m.follow_targets()).await?.into_iter().find(|x|x.app_session_id==t.app_session_id&&x.saved==t.saved);
+                let root=usage_roots().claude;let nid0=new.id.clone();
+                let confirmed=match fresh{Some(f)=>tauri::async_runtime::spawn_blocking(move||follow::confirm(root.as_deref(),&f,&nid0)).await.map_err(|_| "Follow check failed".to_string()).and_then(|r|r),None=>Err("The session changed; nothing was switched".into())};
+                if let Ok(mut c)=FOLLOW_CACHE.lock(){if let Some(c)=c.as_mut(){c.remove(&t.app_session_id);}}
+                let (id,old,nid)=(t.app_session_id.clone(),t.saved.clone(),new.id.clone());
+                let result=match confirmed{Ok(())=>manager(window.clone(),&state,move|m|m.adopt_conversation(&id,&old,&nid,"auto")).await,Err(e)=>Err(e)};
+                match result{
+                    Ok(info)=>{saved=info.provider_session_id.unwrap_or(saved);v.decision=follow::Decision::Current;v.reason="switched to the conversation this session continues".into();v.candidates.clear();v.newer=None;
+                        if let Ok(mut c)=FOLLOW_CACHE.lock(){if let Some(c)=c.as_mut(){c.remove(&t.app_session_id);}}},
+                    Err(e)=>{v.decision=follow::Decision::Ambiguous;v.reason=e;},
+                }
+            }
+        }
+        out.push(FollowStatus{app_session_id:t.app_session_id,running:t.started.is_some(),saved,decision:v.decision,newer:v.newer,candidates:v.candidates.len(),capped:v.capped,reason:v.reason,followed:None});
+    }
+    let history=manager(window,&state,|m|m.follow_history()).await?;
+    for s in &mut out{s.followed=history.iter().find(|(id,e)|*id==s.app_session_id&&e.new_id==s.saved).map(|(_,e)|e.clone());}
+    Ok(out)
+}
+/// The person picked a newer conversation for a session ("Use it" or "Resume latest"). It must still be a valid newer
+/// conversation for that folder right now; the saved ID is switched and recorded. Nothing is started or resent.
+/// With `undo`, the session goes back to the conversation saved before its latest follow (`conversation` must name it).
+#[tauri::command]
+pub async fn live_use_conversation(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String,expected:String,conversation:String,undo:Option<bool>)->Result<SessionInfo,String>{
+    if undo==Some(true){
+        let sid=id.clone();
+        let info=manager(window,&state,move|m|m.undo_follow(&id,&expected,&conversation)).await?;
+        if let Ok(mut c)=FOLLOW_CACHE.lock(){if let Some(c)=c.as_mut(){c.remove(&sid);}}
+        return Ok(info);
+    }
+    let targets=manager(window.clone(),&state,|m|m.follow_targets()).await?;
+    let t=targets.into_iter().find(|t|t.app_session_id==id).ok_or("That session has no saved Claude conversation")?;
+    if t.saved!=expected{return Err("The saved conversation changed meanwhile; check again".into());}
+    let root=usage_roots().claude;
+    let v=tauri::async_runtime::spawn_blocking(move||follow::check(root.as_deref(),&t)).await.map_err(|_| "Follow check failed")?;
+    if !v.candidates.iter().any(|c|c.id==conversation){return Err("That conversation is not a newer conversation of this project folder".into());}
+    let sid=id.clone();
+    let info=manager(window,&state,move|m|m.adopt_conversation(&id,&expected,&conversation,"chosen")).await?;
+    if let Ok(mut c)=FOLLOW_CACHE.lock(){if let Some(c)=c.as_mut(){c.remove(&sid);}}
+    Ok(info)
 }
 #[tauri::command]
 pub async fn usage_snapshot(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>)->Result<agent_app_sessions::UsageSnapshot,String>{

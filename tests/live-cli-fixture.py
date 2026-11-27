@@ -122,6 +122,11 @@ for line in sys.stdin:
         else:hidden.rename(path)
         print('USAGE '+('HIDDEN' if line.endswith('-hide') else 'RESTORED'),flush=True)
         continue
+    if line=='/fixture-resume-other' and provider=='claude':
+        # Like /resume inside the real CLI: the process now writes a different top-level transcript in the same folder.
+        sid=str(uuid.uuid4());saved['id']=sid;state.write_text(json.dumps(saved));write_usage(sid,measured=True)
+        print('RESUMED OTHER '+sid,flush=True)
+        continue
     if line.startswith('/size '):
         rows,cols,_,_=struct.unpack('HHHH',fcntl.ioctl(0,termios.TIOCGWINSZ,b'\0'*8))
         print(f'SIZE {line[6:]} {cols} {rows}',flush=True)

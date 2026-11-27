@@ -562,3 +562,74 @@ fn a_store_without_the_remembered_table_gains_it_on_open() {
     drop(m); remember(&fixture);
     assert_eq!(pending(&fixture).1.version, "fixture-1");
 }
+
+#[test]
+fn an_adopted_conversation_is_resumed_and_an_unrecorded_change_is_refused() {
+    let fixture=Fixture::new();
+    let mut manager=fixture.manager();
+    let record=manager.create("Follow",&fixture.a).unwrap();
+    let live=manager.start(&record.id).unwrap();ready(&mut manager,&live);
+    manager.stop(&live.id,&live.generation).unwrap();
+    let other="44444444-4444-4444-8444-444444444444";
+    assert!(manager.adopt_conversation(&record.id,"55555555-5555-4555-8555-555555555555",other,"chosen").unwrap_err().contains("changed meanwhile"));
+    assert!(manager.adopt_conversation(&record.id,&record.id,"not-a-uuid","chosen").is_err());
+    let adopted=manager.adopt_conversation(&record.id,&record.id,other,"chosen").unwrap();
+    assert_eq!(adopted.provider_session_id.as_deref(),Some(other));assert_eq!(adopted.id,record.id);
+    let history=manager.follow_history().unwrap();
+    assert_eq!(history.len(),1);assert_eq!(history[0].1.old_id,record.id);assert_eq!(history[0].1.new_id,other);
+    let live=manager.start(&record.id).unwrap();
+    let observed=ready(&mut manager,&live);
+    assert_eq!(observed["argv"],serde_json::json!(["--resume",other]));
+    manager.stop(&live.id,&live.generation).unwrap();
+    // A saved ID changed without a recorded follow is still refused.
+    manager.connection.execute("UPDATE sessions SET provider_session_id='66666666-6666-4666-8666-666666666666' WHERE id=?1",[&record.id]).unwrap();
+    assert!(manager.start(&record.id).unwrap_err().contains("does not match"));
+    // A taken ID cannot be adopted by a second session.
+    let second=manager.create("Second",&fixture.b).unwrap();
+    let s2=manager.start(&second.id).unwrap();ready(&mut manager,&s2);manager.stop(&s2.id,&s2.generation).unwrap();
+    assert!(manager.adopt_conversation(&second.id,&second.id,"66666666-6666-4666-8666-666666666666","chosen").unwrap_err().contains("already saved"));
+    // Follow targets: only attempted Claude sessions, with the other sessions' IDs marked taken.
+    let targets=manager.follow_targets().unwrap();
+    assert_eq!(targets.len(),2);assert!(targets.iter().all(|t|t.started.is_none()&&!t.shared));
+    assert!(targets.iter().find(|t|t.app_session_id==second.id).unwrap().taken.iter().any(|x|x=="66666666-6666-4666-8666-666666666666"));
+    // Removing the session removes its follow records.
+    manager.remove(&record.id).unwrap();assert!(manager.follow_history().unwrap().is_empty());
+    manager.shutdown().unwrap();
+}
+
+#[test]
+fn follow_guard_undo_and_rollback() {
+    let fixture=Fixture::new();
+    let mut manager=fixture.manager();
+    let record=manager.create("Guard",&fixture.a).unwrap();
+    let live=manager.start(&record.id).unwrap();ready(&mut manager,&live);
+    manager.stop(&live.id,&live.generation).unwrap();
+    let (b,c)=("77777777-7777-4777-8777-777777777777","88888888-8888-4888-8888-888888888888");
+    // An automatic switch needs the session running.
+    assert!(manager.adopt_conversation(&record.id,&record.id,b,"auto").unwrap_err().contains("no longer running"));
+    // A switch whose UPDATE matches no row is rolled back: no follow record.
+    assert!(manager.switch(&record.id,"99999999-9999-4999-8999-999999999999",b,"auto").unwrap_err().contains("nothing was switched"));
+    assert!(manager.follow_history().unwrap().is_empty());
+    assert_eq!(manager.get(&record.id).unwrap().provider_session_id.as_deref(),Some(record.id.as_str()));
+    // Chain app id -> b -> c. Starting (as Resume all does) accepts only the latest followed ID.
+    manager.adopt_conversation(&record.id,&record.id,b,"chosen").unwrap();
+    manager.adopt_conversation(&record.id,b,c,"chosen").unwrap();
+    let live=manager.start(&record.id).unwrap();
+    assert_eq!(ready(&mut manager,&live)["argv"],serde_json::json!(["--resume",c]));
+    manager.stop(&live.id,&live.generation).unwrap();
+    manager.connection.execute("UPDATE sessions SET provider_session_id=?2 WHERE id=?1",params![&record.id,b]).unwrap();
+    assert!(manager.start(&record.id).unwrap_err().contains("does not match"),"an older followed ID is refused");
+    manager.connection.execute("UPDATE sessions SET provider_session_id=?2 WHERE id=?1",params![&record.id,c]).unwrap();
+    // Undo goes back one step at a time, and the restored ID is accepted at start.
+    assert!(manager.undo_follow(&record.id,c,&record.id).unwrap_err().contains("not the one shown"));
+    assert_eq!(manager.undo_follow(&record.id,c,b).unwrap().provider_session_id.as_deref(),Some(b));
+    assert_eq!(manager.follow_targets().unwrap()[0].declined,vec![c.to_string()],"the undone conversation is declined");
+    let live=manager.start(&record.id).unwrap();
+    assert_eq!(ready(&mut manager,&live)["argv"],serde_json::json!(["--resume",b]));
+    manager.stop(&live.id,&live.generation).unwrap();
+    assert_eq!(manager.undo_follow(&record.id,b,&record.id).unwrap().provider_session_id.as_deref(),Some(record.id.as_str()));
+    assert!(manager.undo_follow(&record.id,&record.id,&record.id).is_err(),"nothing earlier than the app ID");
+    let live=manager.start(&record.id).unwrap();
+    assert_eq!(ready(&mut manager,&live)["argv"],serde_json::json!(["--resume",record.id]));
+    manager.shutdown().unwrap();
+}
