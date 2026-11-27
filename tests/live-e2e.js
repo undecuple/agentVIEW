@@ -235,11 +235,11 @@
       assert(sessions.length===2&&sessions.every(s=>s.attempted&&s.status!=='running'),'metadata restored without relaunch');
       $('show-live').click();
       report('check','restart statuses '+sessions.map(s=>s.status).join(','));
-      const intr=sessions.filter(s=>s.status==='interrupted');
+      const intr=sessions.filter(s=>s.status==='interrupted'||((s.status==='stopped'||s.status==='exited')&&s.provider_session_id));
       if(intr.length){
-        await until(()=>!$('live-resume').hidden&&$('live-resume').querySelectorAll('[data-resume]').length===intr.length,'resume panel lists the interrupted sessions');
+        await until(()=>!$('live-resume').hidden&&$('live-resume').querySelectorAll('[data-resume]').length===intr.length,'resume panel lists the interrupted and stopped saved sessions');
         assert(/Nothing was restarted/.test($('live-resume').textContent),'resume panel says nothing was restarted');
-        assert(!$('live-resume-all').disabled===(intr.length>1),'resume all needs two or more');
+        assert(!$('live-resume-all').disabled,'resume all works for one or more');
         report('check','resume panel shown for '+intr.length);
       }
       for(const saved of sessions){

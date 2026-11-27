@@ -8,15 +8,15 @@
   const notice=text=>{$('live-notice').textContent=text;};
   const current=()=>sessions.find(s=>s.id===selected);
   const active=s=>s&&s.status==='running';
-  // Opt-in resume after a restart: lists sessions the app found "interrupted" and resumes only the ones a person confirms, by exact saved ID. Nothing is resent.
+  // Opt-in resume after a restart: lists sessions that are interrupted, or stopped with a saved conversation, and resumes only the ones a person confirms, by exact saved ID. Nothing is resent.
   let resumeAll=false,armedFocus=false;
   function renderResume(){
-    const box=$('live-resume'),list=sessions.filter(s=>s.status==='interrupted');
+    const box=$('live-resume'),list=sessions.filter(s=>s.status==='interrupted'||((s.status==='stopped'||s.status==='exited')&&s.provider_session_id));
     box.hidden=!list.length;if(!list.length){resumeAll=false;return;}
-    const head=document.createElement('p');head.textContent=`The app closed while ${list.length} agent${list.length===1?' was':'s were'} working. You can pick up where ${list.length===1?'it':'each'} left off. Nothing was restarted or resent. Each one resumes its saved conversation in its own folder, with your usual permission mode (${[...new Set(list.map(s=>s.provider==='claude'?'claude --resume':'codex resume'))].join(' and ')}).`;
+    const head=document.createElement('p');head.textContent=`${list.length} saved session${list.length===1?' is':'s are'} not running. You can pick up where ${list.length===1?'it':'each'} left off. Nothing was restarted or resent. Each one resumes its saved conversation in its own folder, with your usual permission mode (${[...new Set(list.map(s=>s.provider==='claude'?'claude --resume':'codex resume'))].join(' and ')}).`;
     const row=document.createElement('div');row.className='inline-form';
     for(const s of list){const b=document.createElement('button');b.type='button';b.dataset.resume=s.id;const why=!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first (Provider & project setup)`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'Saved session ID is missing':'';b.disabled=busy||!!why;b.title=why;b.textContent=`Resume ${s.label||s.id}`;b.onclick=()=>{selected=s.id;render();$('live-start').click();};row.append(b);}
-    const all=document.createElement('button');all.type='button';all.id='live-resume-all';all.disabled=busy||list.length<2;all.textContent=resumeAll?`Confirm: resume all ${list.length}`:`Resume all (${list.length})`;
+    const all=document.createElement('button');all.type='button';all.id='live-resume-all';all.disabled=busy||!list.length;all.textContent=resumeAll?`Confirm: resume all ${list.length}`:`Resume all (${list.length})`;
     all.onclick=async()=>{
       if(!resumeAll){resumeAll=true;armedFocus=true;renderResume();return;}
       resumeAll=false;if(busy)return;busy=true;mutation++;render();let ok=0,fail=0;
