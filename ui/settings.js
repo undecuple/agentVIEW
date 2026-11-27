@@ -2,9 +2,9 @@
 (() => {
   const $=id=>document.getElementById(id),invoke=(cmd,args={})=>AppIPC.invoke(cmd,args);
   const clone=value=>JSON.parse(JSON.stringify(value));
-  const fields={theme:'pref-theme',ui_scale_percent:'pref-ui-scale',density:'pref-density',default_page:'pref-default-page',preferred_provider:'pref-provider',remember_filters:'pref-remember',demo_mode:'pref-demo',close_behavior:'pref-close',terminal_font_size:'pref-font-size',terminal_scrollback:'pref-scrollback',terminal_cursor_blink:'pref-cursor-blink',usage_provider:'pref-usage-provider',usage_period:'pref-usage-period',usage_refresh_seconds:'pref-refresh'};
+  const fields={theme:'pref-theme',ui_scale_percent:'pref-ui-scale',density:'pref-density',default_page:'pref-default-page',preferred_provider:'pref-provider',remember_filters:'pref-remember',demo_mode:'pref-demo',close_behavior:'pref-close',follow_cli_updates:'pref-follow-cli',terminal_font_size:'pref-font-size',terminal_scrollback:'pref-scrollback',terminal_cursor_blink:'pref-cursor-blink',usage_provider:'pref-usage-provider',usage_period:'pref-usage-period',usage_refresh_seconds:'pref-refresh'};
   const numeric=new Set(['ui_scale_percent','terminal_font_size','terminal_scrollback','usage_refresh_seconds']);
-  const checks=new Set(['remember_filters','demo_mode','terminal_cursor_blink']);
+  const checks=new Set(['follow_cli_updates','remember_filters','demo_mode','terminal_cursor_blink']);
   const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
   const recovery={corrupt_json:'Saved preferences are damaged. Restore app defaults to recover; the original record will be kept.',invalid_settings:'Saved preferences contain unsupported values. Restore app defaults to recover; the original record will be kept.',newer_version:'Preferences belong to a newer version. They are read-only in this build.',oversized:'Saved preferences exceed the safe size limit. They are read-only; the original record is preserved.',invalid_metadata:'Preference metadata is invalid. It is read-only; the original record is preserved.'};
   let draft=null,baseRevision=0,dirty=false,saving=false,aboutBusy=false;

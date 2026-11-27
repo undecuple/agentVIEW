@@ -433,7 +433,12 @@ impl SessionManager {
         Ok(result)
     }
 
-    pub fn start(&mut self, id: &str) -> Result<SessionInfo> {
+    pub fn start(&mut self, id: &str) -> Result<SessionInfo> { self.start_with(id, false) }
+
+    /// `follow_updates`: when the only change is the provider's CLI program (a newer build the person has inspected under
+    /// Provider setup) and the launch recipe is the same, the saved record switches to that program and the session
+    /// resumes by its exact saved ID. A changed recipe still refuses.
+    pub fn start_with(&mut self, id: &str, follow_updates: bool) -> Result<SessionInfo> {
         self.refresh()?;
         if self.cancel.load(Ordering::Acquire) { return Err("Session launch cancelled by workspace close".into()); }
         if self.running.get(id).is_some_and(|r| r.child.is_some()) { return Err("Session is already running".into()); }
@@ -441,10 +446,6 @@ impl SessionManager {
         let mut info = self.get(id)?;
         validate_provider_environment(info.provider)?;
         let tool = self.tools.get(&info.provider).cloned().ok_or("Inspect this provider's installed CLI before starting its session")?;
-        if Path::new(&info.executable) != tool.executable || info.version != tool.version || info.recipe != info.provider.recipe()
-            || info.executable_identity != tool.identity {
-            return Err("Saved CLI executable/version/recipe changed; review and register a new session before launch".into());
-        }
         if fs::canonicalize(&info.project_dir).map_err(|_| "Saved project directory is unavailable")? != Path::new(&info.project_dir) {
             return Err("Saved project directory changed; refusing launch".into());
         }
@@ -453,6 +454,18 @@ impl SessionManager {
             return Err("Reviewed executable changed; repeat the CLI probe".into());
         }
         Uuid::parse_str(id).map_err(|_| "Invalid saved provider session ID")?;
+        // Every other check has passed; only now may the saved record follow an inspected CLI update.
+        let cli_changed = Path::new(&info.executable) != tool.executable || info.version != tool.version || info.executable_identity != tool.identity;
+        if cli_changed && follow_updates && info.recipe == info.provider.recipe() {
+            let exe = tool.executable.to_str().ok_or("Inspected CLI path is not valid text")?.to_string();
+            sql(self.connection.execute("UPDATE sessions SET executable=?1,version=?2,executable_identity=?3 WHERE id=?4",
+                rusqlite::params![exe, tool.version, tool.identity, info.id]))?;
+            info = self.get(id)?;
+        }
+        if Path::new(&info.executable) != tool.executable || info.version != tool.version || info.recipe != info.provider.recipe()
+            || info.executable_identity != tool.identity {
+            return Err("Saved CLI executable/version/recipe changed; review and register a new session before launch".into());
+        }
         let generation = Uuid::new_v4().to_string();
         if info.provider == Provider::Codex && info.provider_session_id.is_none() {
             if info.bootstrap_attempted {

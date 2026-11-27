@@ -126,6 +126,16 @@ fn codex_identity_is_provider_owned_durable_and_resume_is_exact() {
     assert_ne!(resumed.generation,live.generation);
     let output=terminal(&mut manager,&resumed,"READY:");assert!(!output.contains("accepted-once"));
     assert_eq!(fixture.methods(),methods,"Resume must not create another provider thread");
+    manager.stop(&resumed.id,&resumed.generation).unwrap();
+    // An updated Codex CLI: strict without the setting, adopted with it, same native thread resumed, no new thread.
+    manager.configure_provider(Provider::Codex,&fixture.cli,"fixture-codex-2").unwrap();
+    assert!(manager.start(&saved.id).unwrap_err().contains("changed"));
+    let followed=manager.start_with(&saved.id,true).unwrap();
+    assert_eq!(followed.version,"fixture-codex-2");assert_eq!(followed.provider_session_id,saved.provider_session_id);
+    let text=terminal(&mut manager,&followed,"READY:");
+    let ready:serde_json::Value=serde_json::from_str(text.lines().find_map(|s|s.strip_prefix("READY:")).unwrap()).unwrap();
+    assert_eq!(ready["argv"],serde_json::json!(["resume",saved.provider_session_id.as_deref().unwrap(),"--no-daemon"]));
+    assert_eq!(fixture.methods(),methods,"Following an update must not create another provider thread");
     manager.shutdown().unwrap();fixture.assert_helpers_stopped();
 }
 
