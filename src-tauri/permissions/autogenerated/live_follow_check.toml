@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-follow-check"
+description = "Enables the live_follow_check command without any pre-configured scope."
+commands.allow = ["live_follow_check"]
+
+[[permission]]
+identifier = "deny-live-follow-check"
+description = "Denies the live_follow_check command without any pre-configured scope."
+commands.deny = ["live_follow_check"]

@@ -302,6 +302,36 @@
       }
       if(!TEST_LAYOUT)await usageChecks();
       {
+        // Follow: /resume inside the CLI writes another transcript in the same folder; the running session switches to it, and the next start resumes it.
+        const c=(await snapshot()).find(x=>x.provider==='claude'),old=c.provider_session_id;
+        $('show-live').click();await select(c);await until(()=>!$('live-start').disabled,'claude resume enabled');$('live-start').click();
+        await until(async()=>(await snapshot()).find(x=>x.id===c.id).status==='running','claude running for follow');
+        let s=(await snapshot()).find(x=>x.id===c.id);await until(async()=>(await output(s)).includes('FIXTURE READY'),'follow fixture ready');
+        const before=(await invoke('live_follow_check')).find(f=>f.app_session_id===c.id);
+        assert(before&&before.decision==='current'&&before.saved===old,'nothing to follow before a /resume');
+        {const snap=await snapshot();assert((await invoke('live_follow_check')).every(f=>snap.find(x=>x.id===f.app_session_id)?.provider==='claude'),'only Claude sessions are checked');}
+        await invoke('live_write',{id:s.id,generation:s.generation,data:'/fixture-resume-other\r'});
+        let next='';await until(async()=>{const m=(await output(s)).match(/RESUMED OTHER ([0-9a-f-]{36})/);next=m?m[1]:'';return next;},'fixture wrote another conversation');
+        let refused=false;try{await invoke('live_use_conversation',{id:c.id,expected:old,conversation:'00000000-0000-4000-8000-000000000000'});}catch(e){refused=/not a newer conversation/.test(String(e));}
+        assert(refused,'a conversation that is not in the folder is refused');
+        await until(async()=>{const f=(await invoke('live_follow_check')).find(f=>f.app_session_id===c.id);return f&&f.saved===next&&f.followed&&f.followed.old_id===old&&f.followed.how==='auto';},'running session follows the new conversation');
+        await until(()=>$('live-identity').textContent.includes(`Provider ${next}`)&&$('live-identity').textContent.includes(`followed from ${old}`),'identity details show the followed conversation');
+        // Undo goes back to the previous ID and is not switched again automatically; "Use it" then picks the newer one.
+        await until(()=>/Now following conversation/.test($('live-follow-text').textContent)&&$('live-follow-use').textContent==='Undo','Now following line with Undo');
+        $('live-follow-use').click();
+        await until(async()=>(await snapshot()).find(x=>x.id===c.id).provider_session_id===old,'Undo restores the previous conversation');
+        await until(async()=>{const f=(await invoke('live_follow_check')).find(f=>f.app_session_id===c.id);return f&&f.saved===old&&f.decision==='ambiguous'&&f.newer&&f.newer.id===next;},'an undone switch is offered, not repeated');
+        await until(()=>$('live-follow-use').textContent==='Use it'&&!$('live-follow-use').hidden,'Use it offered after Undo');
+        $('live-follow-use').click();
+        await until(async()=>(await snapshot()).find(x=>x.id===c.id).provider_session_id===next,'Use it switches to the newer conversation');
+        $('live-stop').click();await until(async()=>(await snapshot()).find(x=>x.id===c.id).status==='stopped','stop after follow');
+        await until(()=>!$('live-start').disabled,'resume enabled after follow');$('live-start').click();await until(async()=>(await snapshot()).find(x=>x.id===c.id).status==='running','restart after follow');
+        s=(await snapshot()).find(x=>x.id===c.id);await until(async()=>(await output(s)).includes('FIXTURE READY'),'followed conversation resumed');
+        assert((await output(s)).includes(`SYNTHETIC CLAUDE CLI ${next}`)&&(await output(s)).includes('MODE --resume'),'next start resumes the followed conversation');
+        $('live-stop').click();await until(async()=>(await snapshot()).find(x=>x.id===c.id).status==='stopped','stop after followed resume');
+        report('check','follow '+old.slice(0,8)+'->'+next.slice(0,8));
+      }
+      {
         // Documents page: add by path with a review step, read in the app, refuse unsafe paths, stop sharing.
         const shared=`${PROJECT_ROOT}/shared`;const files=()=>[...document.querySelectorAll('#docs-files .docs-file')].map(b=>b.textContent);
         $('show-docs').click();await until(()=>!$('docs').hidden,'Documents page opens in the main window');

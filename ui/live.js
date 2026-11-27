@@ -10,6 +10,25 @@
   const active=s=>s&&s.status==='running';
   // Opt-in resume after a restart: lists sessions that are interrupted, or stopped with a saved conversation, and resumes only the ones a person confirms, by exact saved ID. Nothing is resent.
   let resumeAll=false,armedFocus=false;
+  // Follow: which conversation each Claude session really continues (after /resume inside the CLI). The app checks the project's
+  // transcript folder at most every 30 s per session (the page asks every 5 s and gets the saved answer in between); it switches only an unambiguous running session, and otherwise only shows the newer one.
+  let follows=new Map(),followSig='';
+  const ago=t=>{const s=Math.max(0,Math.round(Date.now()/1000-t));return s<90?`${s} s`:s<5400?`${Math.round(s/60)} min`:s<172800?`${Math.round(s/3600)} h`:`${Math.round(s/86400)} d`;};
+  const newerOf=s=>{const f=follows.get(s.id);return f&&f.saved===s.provider_session_id&&f.newer&&(f.decision==='offer'||f.decision==='ambiguous')?f:null;};
+  async function checkFollow(){try{const list=await invoke('live_follow_check');const sig=JSON.stringify(list);if(sig===followSig)return;followSig=sig;follows=new Map(list.map(f=>[f.app_session_id,f]));
+    if(list.some(f=>sessions.some(s=>s.id===f.app_session_id&&s.provider_session_id!==f.saved))){rosterSig='';await refresh();}render();}catch{}}
+  async function useLatest(s,start){const f=newerOf(s);if(!f||busy)return false;try{const next=await invoke('live_use_conversation',{id:s.id,expected:s.provider_session_id,conversation:f.newer.id});sessions=sessions.map(x=>x.id===s.id?next:x);follows.delete(s.id);followSig='';}catch(e){notice(`Not switched: ${String(e)}`);return false;}
+    if(start){selected=s.id;render();$('live-start').click();}else{notice(`Saved conversation is now ${f.newer.id.slice(0,8)}. Nothing was started or resent.`);render();}checkFollow();return true;}
+  function renderFollow(s){
+    const box=$('live-follow'),text=$('live-follow-text'),use=$('live-follow-use'),f=s&&follows.get(s.id),n=s&&newerOf(s);
+    let m='';use.hidden=true;
+    if(n){m=`Newer conversation found in this folder: ${n.newer.id.slice(0,8)} · last activity ${ago(n.newer.modified)} ago${n.candidates>1?` (${n.candidates} newer)`:''}.`;
+      use.hidden=false;use.disabled=busy;use.textContent=active(s)?'Use it':'Resume latest';use.title=active(s)?'Save it as this session\'s conversation; the running process is not touched':'Save it as this session\'s conversation, then resume it';use.onclick=()=>useLatest(s,!active(s));}
+    else if(f&&f.followed&&f.followed.how!=='undo'&&f.followed.new_id===s.provider_session_id){const e=f.followed,at=Date.parse(e.at)/1000;m=`Now following conversation ${e.new_id.slice(0,8)} (switched ${ago(at)} ago${e.how==='auto'?', automatically':''}).`;
+      use.hidden=false;use.disabled=busy;use.textContent='Undo';use.title=`Go back to conversation ${e.old_id}; nothing is started or resent`;
+      use.onclick=async()=>{if(busy)return;try{const next=await invoke('live_use_conversation',{id:s.id,expected:s.provider_session_id,conversation:e.old_id,undo:true});sessions=sessions.map(x=>x.id===s.id?next:x);follows.delete(s.id);followSig='';notice(`Saved conversation is back to ${e.old_id.slice(0,8)}. Nothing was started or resent.`);render();checkFollow();}catch(err){notice(`Not undone: ${String(err)}`);}};}
+    text.textContent=m;box.hidden=!m;
+  }
   // Konsole-style tabs: one tab per opened session. Closing a tab never stops its process. Open tabs and their order are a per-viewer
   // convenience kept in localStorage (session IDs only); without it the page still works and opens tabs for running sessions.
   const TABKEY='agentview.liveTabs',okId=v=>typeof v==='string'&&/^[0-9a-f-]{36}$/i.test(v);
@@ -62,7 +81,8 @@
     box.hidden=!list.length;if(!list.length){resumeAll=false;return;}
     const head=document.createElement('p');head.textContent=`${list.length} saved session${list.length===1?' is':'s are'} not running. You can pick up where ${list.length===1?'it':'each'} left off. Nothing was restarted or resent. Each one resumes its saved conversation in its own folder, with your usual permission mode (${[...new Set(list.map(s=>s.provider==='claude'?'claude --resume':'codex resume'))].join(' and ')}).`;
     const row=document.createElement('div');row.className='inline-form';
-    for(const s of list){const b=document.createElement('button');b.type='button';b.dataset.resume=s.id;const why=!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first (Provider & project setup)`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'Saved session ID is missing':'';b.disabled=busy||!!why;b.title=why;b.textContent=`Resume ${s.label||s.id}`;b.onclick=()=>{selected=s.id;render();$('live-start').click();};row.append(b);}
+    for(const s of list){const b=document.createElement('button');b.type='button';b.dataset.resume=s.id;const why=!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first (Provider & project setup)`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'Saved session ID is missing':'';b.disabled=busy||!!why;b.title=why;b.textContent=`Resume ${s.label||s.id}`;b.onclick=()=>{selected=s.id;render();$('live-start').click();};row.append(b);
+      const n=newerOf(s);if(n){const l=document.createElement('button');l.type='button';l.dataset.resumeLatest=s.id;l.disabled=busy||!!why;l.title=why||`Newer conversation ${n.newer.id} · last activity ${ago(n.newer.modified)} ago`;l.textContent=`Resume latest ${s.label||s.id} (${n.newer.id.slice(0,8)} · ${ago(n.newer.modified)} ago)`;l.onclick=()=>useLatest(s,true);row.append(l);}}
     const all=document.createElement('button');all.type='button';all.id='live-resume-all';all.disabled=busy||!list.length;all.textContent=resumeAll?`Confirm: resume all ${list.length}`:`Resume all (${list.length})`;
     all.onclick=async()=>{
       if(!resumeAll){resumeAll=true;armedFocus=true;renderResume();return;}
@@ -86,7 +106,7 @@
     const s=current();
     $('live-name').textContent=s?(s.display_name||s.label):'Select a registered project';
     $('live-project').textContent=s?s.project_dir:'';$('live-project').title=s?s.project_dir:'';
-    $('live-identity').textContent=s?`${s.project_dir} · App ${s.id} · Provider ${s.provider_session_id||'not established'} · ${s.version} · ${s.executable}`:'Session IDs and launch recipes are saved. Terminal content is kept in memory only.';
+    $('live-identity').textContent=s?`${s.project_dir} · App ${s.id} · Provider ${s.provider_session_id||'not established'}${(f=>f&&f.how!=='undo'&&f.new_id===s.provider_session_id?` · followed from ${f.old_id} at ${f.at} (${f.how})`:'')(follows.get(s.id)?.followed)} · ${s.version} · ${s.executable}`:'Session IDs and launch recipes are saved. Terminal content is kept in memory only.';
     $('live-start').textContent=s&&!tools.has(s.provider)?`Inspect ${providerName(s.provider)} first`:s&&(s.attempted||s.bootstrap_attempted)&&!s.provider_session_id?'Identity needs review':s&&s.attempted?'Resume saved ID':'Start new session';
     $('live-start').disabled=busy||!s||active(s)||!tools.has(s.provider)||((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id);$('live-stop').disabled=busy||!active(s);
     $('live-hint').textContent=!s?'Select or register a project to start a session.':active(s)?'Running. Use Stop process to end it.':!tools.has(s.provider)?`Press "Inspect ${providerName(s.provider)} CLI" in Provider & project setup first.`:((s.attempted||s.bootstrap_attempted)&&!s.provider_session_id)?'This session needs its saved identity reviewed before it can resume.':'';
@@ -96,7 +116,7 @@
       else if(s&&s.status==='interrupted')m='This session was running when the app last closed. Nothing was resent. Start it to resume.';
       else if(s&&s.status==='bootstrap_unknown')m='Setup of this session was interrupted. Check it in the provider before starting.';
       b.textContent=m;b.hidden=!m;b.dataset.bad=String(!!s&&s.status==='exited'&&!!s.exit_info&&s.exit_info!=='exit 0');}
-    renderExtra(s);
+    renderFollow(s);renderExtra(s);
     $('live-quick-target').textContent=s?`Paste target: ${providerName(s.provider)} · ${s.label}`:'Select a running coordinator';
     document.querySelectorAll('[data-quick],#live-paste-custom').forEach(button=>button.disabled=busy||!active(s));
     for(const [key,t] of terminals)t.host.hidden=!s||key!==`${s.id}:${s.generation}`;
@@ -184,7 +204,7 @@
   async function loadTools(){try{const list=await invoke('live_tools');changedTools.clear();
     for(const t of list){if(t.changed)changedTools.set(t.provider,t);else{tools.set(t.provider,t);changedTools.delete(t.provider);}}
     showTool();}catch{}}
-  window.addEventListener('agentview:navigate',e=>{if(e.detail==='sessions'){inspected=true;loadTools();refresh();render();}});
+  window.addEventListener('agentview:navigate',e=>{if(e.detail==='sessions'){inspected=true;loadTools();refresh().then(checkFollow);render();}});
   function showTool(){
     const provider=$('live-provider').value,tool=tools.get(provider);
     $('live-probe').textContent=`Inspect ${providerName(provider)} CLI`;
@@ -276,6 +296,7 @@
   $('live-remote-disable').onclick=()=>{const s=current();if(s)mutate('live_set_remote',{id:s.id,enabled:false},'Remote Control is off for the next start.');};
   new ResizeObserver(()=>{const s=current();if(s)fit(terminal(s),s);}).observe($('live-terminal'));
   setInterval(()=>{if(!document.hidden&&inspected&&!$('live').hidden&&!busy)refresh();},1500);
+  setInterval(()=>{if(!document.hidden&&inspected&&!busy)checkFollow();},5000);
   // Adaptive terminal poll: 120 ms while output flows, backing off to 1 s when idle; paused while the window is hidden.
   async function pollTerminal(){
     const s=current();if(document.hidden||polling||!s||$('live').hidden||!s.generation)return 500;polling=true;const t=terminal(s),key=`${s.id}:${s.generation}`;

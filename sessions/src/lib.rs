@@ -23,6 +23,7 @@ pub mod usage;
 mod remembered;
 pub use remembered::{file_sha256, quick_check, tool_identity, RememberedTool, RestoredTarget, ToolStatus, MAX_HASH_BYTES};
 pub mod activity;
+pub mod follow;
 pub use activity::Activity;
 pub use usage::{UsageDay, UsageRoots, UsageSession, UsageSnapshot, UsageTotals};
 
@@ -130,6 +131,8 @@ struct Running {
     reader: Option<JoinHandle<()>>,
     generation: String,
     input_bytes: u64,
+    /// When the app started this process (used to tell conversations written since then).
+    started: std::time::SystemTime,
 }
 impl Running {
     fn stop(&mut self) {
@@ -308,6 +311,7 @@ impl SessionManager {
         if has_exit == 0 { sql(tx.execute_batch("ALTER TABLE sessions ADD COLUMN exit_info TEXT; ALTER TABLE sessions ADD COLUMN exit_at TEXT;"))?; }
         // A cache of the person's own CLI inspection (see remembered.rs). Older app versions ignore the extra table.
         sql(tx.execute_batch(remembered::SCHEMA))?;
+        Self::init_follow(&tx)?;
         // Recovery is metadata-only. Never relaunch or resend terminal input.
         sql(tx.execute("UPDATE sessions SET status='interrupted' WHERE status IN ('running','launching')", []))?;
         sql(tx.execute("UPDATE sessions SET status='bootstrap_unknown' WHERE status='bootstrapping'", []))?;
@@ -405,6 +409,7 @@ impl SessionManager {
         let tx = sql(self.connection.transaction_with_behavior(TransactionBehavior::Immediate))?;
         sql(tx.execute("DELETE FROM usage_readings WHERE app_session_id=?1", params![id]))?;
         sql(tx.execute("DELETE FROM usage_sources WHERE app_session_id=?1", params![id]))?;
+        sql(tx.execute("DELETE FROM session_follows WHERE app_session_id=?1", params![id]))?;
         sql(tx.execute("DELETE FROM sessions WHERE id=?1", params![id]))?;
         sql(tx.commit())?;
         self.running.remove(id);
@@ -498,7 +503,7 @@ impl SessionManager {
         }
         let native_id = info.provider_session_id.as_deref().ok_or("Saved native provider identity is missing")?;
         codex::validate_uuid(native_id)?;
-        if info.provider == Provider::Claude && native_id != id { return Err("Claude native identity does not match its saved app record".into()); }
+        if info.provider == Provider::Claude && native_id != id && !self.followed(id, native_id)? { return Err("Claude native identity does not match its saved app record".into()); }
         if self.cancel.load(Ordering::Acquire) { return Err("Session launch cancelled by workspace close".into()); }
         // An uncertain first launch must always recover by exact resume, never
         // make a second conversation or replay input after app/exec failure.
@@ -566,7 +571,7 @@ impl SessionManager {
             let reader = reader?;
             match receiver.recv() {
                 Ok(Ok(child)) => Ok(Running { child: Some(child), master, ring, stop_reader,
-                    reader: Some(reader), generation: generation.clone(), input_bytes: 0 }),
+                    reader: Some(reader), generation: generation.clone(), input_bytes: 0, started: std::time::SystemTime::now() }),
                 result => {
                     stop_reader.store(true, Ordering::Release);
                     let _ = reader.join();
