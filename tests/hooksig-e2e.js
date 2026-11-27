@@ -20,6 +20,12 @@
     await until(async()=>{const s=await invoke('codex_hook_status',{});return s.snippet.includes('notify = [')&&s.snippet.includes('agent-turn-complete')&&s.snippet.includes('codex-notify.jsonl');},'codex snippet');
     report('ready','1');   // the script now appends the signal lines
     await until(async()=>{const s=await invoke('claude_hook_status',{});return s.last_at!=null;},'signal seen by the status',400);
+    await until(async()=>(await invoke('files_access_report',{})).length>=3,'files log read');
+    { const fa=await invoke('files_access_report',{}),j=JSON.stringify(fa);
+      assert(fa.length===3&&fa[2].path==='src/lib.rs'&&fa[2].kind==='read'&&fa[1].path==='README.md'&&fa[1].kind==='write','files log: newest first, paths relative to the project, Bash lines ignored');
+      assert(fa[0].hidden&&fa[0].path==='[hidden]'&&!j.includes('id_rsa')&&!j.includes('.ssh'),'files log: a denied name is hidden and never reaches the page');
+      const st=await invoke('files_access_status',{});assert(st.snippet.includes('PostToolUse')&&st.snippet.includes('claude-files.jsonl')&&st.last_at>0,'files hook snippet and last time shown');
+      let bad=false;try{await invoke('files_access_report',{session:'bad id'});}catch{bad=true;}assert(bad,'files log: bad session id refused'); }
     $('hookcfg-check').click();
     await until(()=>$('hookcfg-state').textContent.includes('The hook works'),'status line says the hook works');
     await sleep(4000);  // let the monitor send
