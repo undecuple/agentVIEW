@@ -243,6 +243,7 @@ pub fn asset(path: &str) -> Option<(&'static str, &'static str)> {
         "/review.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/review.js"))),
         "/identity.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/identity.css"))),
         "/calm.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/calm.css"))),
+        "/terminal.css" => Some(("text/css; charset=utf-8", include_str!("../../ui/terminal.css"))),
         "/prefs.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/prefs.js"))),
         "/live.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/live.js"))),
         "/vendor/xterm.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/vendor/xterm.js"))),
