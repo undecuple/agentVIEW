@@ -8,6 +8,29 @@
     in {
       # Data the standalone AppImage carries besides the binary's own libraries (fonts, icons, schemas, MIME data, bwrap).
       packages.${system} = {
+      # Native NixOS build: the app runs directly on the host (no AppImage, no bubblewrap), so the sessions it starts
+      # see the system exactly like a terminal does (ssh, sshfs, setuid helpers). Install with `nix profile install`
+      # or add `inputs.agentview.packages.x86_64-linux.default` to home.packages.
+      default = self.packages.${system}.agentview;
+      agentview = pkgs.rustPlatform.buildRustPackage {
+        pname = "agentview";
+        version = "0.1.0";
+        src = pkgs.lib.fileset.toSource {
+          root = ./.;
+          fileset = pkgs.lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./core ./sessions ./workspace ./src-tauri ./ui ./dist ./packaging/agent-app.desktop ];
+        };
+        cargoLock.lockFile = ./Cargo.lock;
+        buildAndTestSubdir = "src-tauri";
+        nativeBuildInputs = with pkgs; [ pkg-config wrapGAppsHook3 ];
+        buildInputs = with pkgs; [ webkitgtk_4_1 gtk3 libsoup_3 librsvg openssl glib cairo pango atk gdk-pixbuf harfbuzz glib-networking gsettings-desktop-schemas sqlite ];
+        doCheck = false; # the repo's own scripts run the tests; they need a display and fixtures
+        postInstall = ''
+          install -Dm644 packaging/agent-app.desktop $out/share/applications/agentview.desktop
+          install -Dm644 src-tauri/icons/icon.png $out/share/icons/hicolor/512x512/apps/agent-app.png
+          ln -s agent-app $out/bin/agentview
+        '';
+        meta.mainProgram = "agent-app";
+      };
       fonts-conf = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
       standalone-extras = pkgs.symlinkJoin {
         name = "agentview-standalone-extras";
