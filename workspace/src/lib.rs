@@ -232,6 +232,7 @@ pub fn asset(path: &str) -> Option<(&'static str, &'static str)> {
         "/away.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/away.js"))),
         "/flow.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/flow.js"))),
         "/filesaccess.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/filesaccess.js"))),
+        "/tasks.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/tasks.js"))),
         "/tabs.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/tabs.js"))),
         "/webhook.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/webhook.js"))),
         "/backup.js" => Some(("text/javascript; charset=utf-8", include_str!("../../ui/backup.js"))),

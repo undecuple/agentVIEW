@@ -18,6 +18,9 @@
       assert(s0.threshold===80&&s0.limits===null&&s0.snippet.includes('rate_limits.seven_day')&&s0.snippet.includes('claude-limits.json'),'limits snippet shown, alert at 80, no data yet');
       let bad=false;try{await invoke('claude_limits_status',{threshold:101});}catch{bad=true;}assert(bad,'threshold above 100 refused'); }
     await until(async()=>{const s=await invoke('codex_hook_status',{});return s.snippet.includes('notify = [')&&s.snippet.includes('agent-turn-complete')&&s.snippet.includes('codex-notify.jsonl');},'codex snippet');
+    { const st=await invoke('tasks_status',{}),m=st.snippet?JSON.parse(st.snippet).hooks:null;
+      report('taskscmd-start',m.UserPromptSubmit[0].hooks[0].command);report('taskscmd-end',m.Stop[0].hooks[0].command);
+      assert(m.UserPromptSubmit[0].hooks[0].command.includes('tp:.transcript_path')&&m.Stop[0].hooks[0].command.includes('tp:.transcript_path'),'tasks hooks log the transcript path'); }
     report('ready','1');   // the script now appends the signal lines
     await until(async()=>{const s=await invoke('claude_hook_status',{});return s.last_at!=null;},'signal seen by the status',400);
     await until(async()=>(await invoke('files_access_report',{})).length>=3,'files log read');
@@ -26,6 +29,31 @@
       assert(fa[0].hidden&&fa[0].path==='[hidden]'&&!j.includes('id_rsa')&&!j.includes('.ssh'),'files log: a denied name is hidden and never reaches the page');
       const st=await invoke('files_access_status',{});assert(st.snippet.includes('PostToolUse')&&st.snippet.includes('claude-files.jsonl')&&st.last_at>0,'files hook snippet and last time shown');
       let bad=false;try{await invoke('files_access_report',{session:'bad id'});}catch{bad=true;}assert(bad,'files log: bad session id refused'); }
+    await until(async()=>(await invoke('tasks_report',{session:'sess-1'})).rows.length>=2,'tasks log read');
+    { const tr=await invoke('tasks_report',{session:'sess-1'}),rows=tr.rows;
+      assert(rows.length===2&&rows[0].label==='Second task'&&rows[0].state==='running'&&rows[0].end==null,'tasks: newest first, the open one is running, unknown kinds ignored');
+      assert(rows[1].label==='Fix the parser'&&rows[1].state==='done'&&rows[1].duration===10&&rows[1].project==='example-project','tasks: start and end paired with duration and project');
+      assert(rows.every(r=>r.tokens===null)&&rows[1].tokens_why.includes('did not log a transcript path')&&tr.tokens_note.includes('n/a'),'tasks: no tp logged means n/a with a reason, never an estimate');
+      const st=await invoke('tasks_status',{});assert(st.snippet.includes('UserPromptSubmit')&&st.snippet.includes('Stop')&&st.snippet.includes('claude-tasks.jsonl')&&st.last_at>0,'tasks hook snippet and last time shown');
+      let bad=false;try{await invoke('tasks_report',{session:'bad id'});}catch{bad=true;}assert(bad,'tasks: bad session id refused');
+      const wrr=await invoke('workflows_report',{}),wr=wrr.runs,wj=JSON.stringify(wrr);
+      assert(wr.length===1&&wr[0].id==='wf_fixture-1'&&wr[0].state==='completed'&&wr[0].agents===3&&wr[0].tokens===1234&&wr[0].duration_ms===5000,'workflow runs: id, state, agents, duration and token total from the record');
+      assert(!wj.includes('SECRET'),'workflow runs: prompts, scripts and outputs never reach the page');
+      assert(wrr.skipped===1&&wr[0].project==='project'&&!wj.includes('srv')&&!wj.includes('example')&&!wj.includes('sess-1'),'workflow runs: one unusable record counted, only the last folder segment as project, no slug or session folder');
+      assert(wrr.note.includes('not a documented one'),'workflow runs: the format caveat is sent');
+      $('taskscfg-check').click();await until(()=>$('taskscfg-snippet').value.includes('UserPromptSubmit'),'tasks snippet box filled'); }
+    // Sample payloads piped through the generated hook commands by the script (several sessions, a missing end, a key, no tp).
+    await until(async()=>{const r=(await invoke('tasks_report',{})).rows;return r.some(x=>x.session==='hk-a'&&x.state==='done')&&r.some(x=>x.session==='hk-b'&&x.state==='done')&&r.some(x=>x.session==='hk-d'&&x.state==='done');},'hook command lines read',600);
+    await sleep(3500);   // the script writes a transcript line after the stop; wait until it is there
+    { const tr=await invoke('tasks_report',{}),rows=tr.rows,tj=JSON.stringify(tr),by=s=>rows.filter(r=>r.session===s);
+      const a=by('hk-a')[0],b=by('hk-b')[0],c=by('hk-c'),d=by('hk-d')[0];
+      assert(a.label==='Tokens please'&&a.state==='done'&&a.project==='example-project','hook line: first prompt line only, paired by the Stop line');
+      assert(JSON.stringify(a.tokens)===JSON.stringify({input:10,output:20,cache_creation:30,cache_read:400}),'tokens: only the lines inside the window and of this session, cache read kept apart ('+JSON.stringify(a.tokens)+' '+a.tokens_why+')');
+      assert(JSON.stringify(b.tokens)===JSON.stringify({input:1,output:2,cache_creation:3,cache_read:4}),'tokens: interleaved sessions are summed separately');
+      assert(c.length===2&&c[0].label.startsWith('Running one')&&c[0].state==='running'&&c[0].tokens===null&&c[0].tokens_why===''&&c[1].state==='no end logged','a start with no end: the second prompt supersedes the first; a running task has no tokens');
+      assert(d.tokens===null&&d.tokens_why.includes('did not log a transcript path'),'no transcript_path in the payload: n/a with a reason');
+      assert(!tj.includes('sk-ant')&&!tj.includes('SECOND-LINE')&&!tj.includes('CONTENT-MARKER')&&!tj.includes('.jsonl')&&!tj.includes('projects/')&&!tj.includes(':\\'),'a key in the prompt is redacted, no later prompt line, transcript text or path reaches the page');
+      const raw=await invoke('tasks_status',{});assert(raw.size>0,'status reports the log file size'); }
     $('hookcfg-check').click();
     await until(()=>$('hookcfg-state').textContent.includes('The hook works'),'status line says the hook works');
     await sleep(4000);  // let the monitor send
@@ -43,6 +71,8 @@
     await until(()=>$('mail-recent').textContent.includes('worker-1')&&$('mail-recent').textContent.includes('tests pass'),'recent messages listed');
     $('mail-name').value='bad name';$('mail-check').click();await until(()=>/Use letters/.test($('mail-state').textContent),'invalid agent name refused');
     $('show-flow').click();
+    await until(()=>$('tasks-body').textContent.includes('60 + 400 cached'),'tasks table shows fresh tokens with the cache read apart');
+    assert(!$('tasks-body').textContent.includes('sk-ant'),'tasks table: no key');
     await until(()=>[...$('board-project').options].some(o=>o.value==='proj-a'),'board project listed');
     await until(()=>$('board-cols').querySelector('[data-col=active] [data-id=T-1]')&&$('board-cols').querySelector('[data-col=blocked] [data-id=T-2]'),'cards in their columns (newest line wins)');
     assert($('board-cols').querySelector('[data-id=T-1]').textContent.includes('Write tests')&&$('board-cols').querySelector('[data-id=T-1]').textContent.includes('half done'),'title kept and note shown');

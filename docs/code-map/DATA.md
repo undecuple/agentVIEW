@@ -74,6 +74,10 @@ The only browser-side storage is the sidebar-collapse flag in `localStorage`.
 
 `kanban/<project>.jsonl` (folder mode 0700) holds the event lines agents append for a project board; `kanban.rs` folds the last 256 KB (newest line per card id wins) and the Flow page draws it (`ui/board.js`). Read-only for the app.
 
+## Tasks log and token counts
+
+`signals/claude-tasks.jsonl` (folder mode 0700) holds one line per UserPromptSubmit (`k:start`, with the first prompt line, at most 200 characters) and Stop (`k:end`) hook call: `t`, `s` (session), `c` (cwd), `tp` (Claude's `transcript_path`). It only grows; the app never writes to it (delete it to clear the history; Settings shows its size). `tasks.rs` folds the last 256 KB, and for finished tasks reads the Claude transcript named by `tp`: only if it is an absolute `.jsonl` path inside `<Claude root>/projects/<project>/`, no symlink on the way, regular file, 32 MB read cap. From each line only `timestamp`, `sessionId`, `message.id` and the four numeric `message.usage` fields are deserialised, never message content; the numbers of lines inside the task's start..end seconds are summed (cache reads apart). Neither the transcript path nor any transcript text is sent to the page or logged. Claude Code's workflow run records (`projects/<slug>/<session>/workflows/wf_*.json`) are an observed, not specified, format and may change; unusable ones are counted as skipped.
+
 ## Mailbox
 
 `mailbox/` (mode 0700) holds `messages.jsonl` (one JSON line per message, appended by agents) and `<file>.<name>.pos` cursor files written by each recipient's own receive hook. The app only reads `messages.jsonl` (`mailbox.rs`); messages are data, never approvals.

@@ -20,6 +20,10 @@ SH
 chmod 700 "$run/fake-notify-send"
 touch "$run/data/board-alert"; chmod 600 "$run/data/board-alert"
 export AGENT_APP_DATA_DIR="$run/data" AGENT_APP_CONFIG="$run/config/allowlist.toml" AGENT_APP_TEST_CURL="$run/fake-curl" AGENT_APP_TEST_NOTIFYSEND="$run/fake-notify-send" AGENT_APP_TEST_HOOKSIG=1 AGENT_APP_TEST_POLL_MS=300 AGENT_APP_TEST_PHASE=first
+mkdir -p "$run/claude/projects/-srv-example-project/sess-1/workflows"
+printf '{"runId":"wf_fixture-1","script":"SECRET-SCRIPT","result":["SECRET-OUTPUT"],"agentCount":3,"logs":["SECRET-LOG"],"durationMs":5000,"summary":"SECRET-SUMMARY","workflowName":"fixture","status":"completed","startTime":%s000,"totalTokens":1234}' "$(( $(date +%s) - 60 ))" > "$run/claude/projects/-srv-example-project/sess-1/workflows/wf_fixture-1.json"
+printf 'not json' > "$run/claude/projects/-srv-example-project/sess-1/workflows/wf_broken-1.json"
+export AGENT_APP_TEST_CLAUDE_DIR="$run/claude"
 export WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11
 sig="$run/data/signals/claude-notify.jsonl"
 # Appends lines once the page reports ready: one old line is ignored by design (written before the app reads), then real ones.
@@ -37,6 +41,38 @@ sig="$run/data/signals/claude-notify.jsonl"
   printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"Edit","p":"/srv/example-project/README.md"}\n' "$(( $(date +%s) - 2 ))" >> "$ff"
   printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"Read","p":"/srv/someone/.ssh/id_rsa"}\n' "$(( $(date +%s) - 1 ))" >> "$ff"
   printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"Bash","p":"/srv/x"}\n' "$(date +%s)" >> "$ff"
+  tf="$run/data/signals/claude-tasks.jsonl"
+  # The hook commands the app generated (reported by the page), run with jq on sample Claude hook payloads: two sessions interleaved,
+  # a transcript with lines before, inside and after the task window, another session inside it, a missing end, a key in the prompt,
+  # a payload without transcript_path.
+  cmd_of() { grep -o "taskscmd-$1=[^ ]*" "$run/hook.log" | head -1 | cut -d= -f2- | python3 -c 'import sys,urllib.parse;print(urllib.parse.unquote(sys.stdin.read().strip()),end="")'; }
+  startcmd=$(cmd_of start); endcmd=$(cmd_of end)
+  tdir="$run/claude/projects/-srv-example-project"
+  key="sk-ant-$(printf 'a1b2c3d4e5%.0s' 1 2 3 4)"
+  pl() { jq -nc --arg s "$1" --arg e "$2" --arg p "$3" --arg tp "$4" '{session_id:$s,cwd:"/srv/example-project",hook_event_name:$e} + (if $e=="UserPromptSubmit" then {prompt:$p} else {} end) + (if $tp=="" then {} else {transcript_path:$tp} end)'; }
+  tl() { printf '{"type":"assistant","timestamp":"%s","sessionId":"%s","message":{"id":"%s","content":[{"type":"text","text":"CONTENT-MARKER"}],"usage":{"input_tokens":%s,"output_tokens":%s,"cache_creation_input_tokens":%s,"cache_read_input_tokens":%s}}}\n' "$(date -u -d "$2" +%Y-%m-%dT%H:%M:%S.500Z)" "$3" "$4" "$5" "$6" "$7" "$8" >> "$1"; }
+  ta="$tdir/hk-a.jsonl"; tb="$tdir/hk-b.jsonl"
+  tl "$ta" "-100 sec" hk-a before 1 1 1 1
+  pl hk-a UserPromptSubmit $'Tokens please\nsecond line SECOND-LINE' "$ta" | sh -c "$startcmd"
+  pl hk-b UserPromptSubmit "Other session task" "$tb" | sh -c "$startcmd"
+  pl hk-c UserPromptSubmit "Interrupted one" "" | sh -c "$startcmd"
+  sleep 1
+  pl hk-c UserPromptSubmit "Running one with $key inside" "" | sh -c "$startcmd"
+  pl hk-d UserPromptSubmit "No transcript path" "" | sh -c "$startcmd"
+  sleep 1
+  tl "$ta" "now" hk-a m1 10 20 30 400
+  tl "$ta" "now" hk-other other 999 999 999 999
+  tl "$tb" "now" hk-b m2 1 2 3 4
+  sleep 1
+  pl hk-b Stop "" "$tb" | sh -c "$endcmd"
+  pl hk-a Stop "" "$ta" | sh -c "$endcmd"
+  pl hk-d Stop "" "" | sh -c "$endcmd"
+  sleep 2
+  tl "$ta" "now" hk-a after 7 7 7 7
+  printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"start","m":"Fix the parser"}\n' "$(( $(date +%s) - 30 ))" >> "$tf"
+  printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"end"}\n' "$(( $(date +%s) - 20 ))" >> "$tf"
+  printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"start","m":"Second task"}\n' "$(( $(date +%s) - 10 ))" >> "$tf"
+  printf '{"t":%s,"s":"sess-1","c":"/srv/example-project","k":"pause"}\n' "$(date +%s)" >> "$tf"
   mkdir -p "$run/data/kanban"; chmod 700 "$run/data/kanban"; kb="$run/data/kanban/proj-a.jsonl"; n=$(date +%s)
   printf '{"t":%s,"id":"T-1","col":"queued","title":"Write tests","by":"worker-1"}\n' "$((n-30))" >> "$kb"
   printf '{"t":%s,"id":"T-1","col":"active","note":"half done"}\n' "$((n-10))" >> "$kb"
@@ -77,3 +113,7 @@ echo "plan limit checks ok"
 grep -q 'AWAY MODE is ON' "$run/data/away-instruction.txt" && [ "$(stat -c %a "$run/data/away-instruction.txt")" = 600 ] || { echo "instruction file wrong"; exit 1; }
 [ "$(grep -c . "$run/data/decisions/pending.jsonl")" = 3 ] || { echo "the app must not change the agents' decisions file"; exit 1; }
 echo "Away mode files: PASS"
+# The log is written only by the hooks: the generated commands put tp on their lines, and the app left the raw lines alone
+[ "$(grep -c '"tp":"' "$run/data/signals/claude-tasks.jsonl")" -ge 4 ] || { echo "hook lines without tp"; exit 1; }
+grep -q 'second line SECOND-LINE\|SECOND-LINE' "$run/data/signals/claude-tasks.jsonl" && { echo "the hook kept more than the first prompt line"; exit 1; }
+echo "Tasks hook command checks: PASS"
