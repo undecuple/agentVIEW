@@ -20,6 +20,8 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 mod codex;
 pub mod usage;
+mod remembered;
+pub use remembered::{file_sha256, quick_check, tool_identity, RememberedTool, RestoredTarget, ToolStatus, MAX_HASH_BYTES};
 pub mod activity;
 pub use activity::Activity;
 pub use usage::{UsageDay, UsageRoots, UsageSession, UsageSnapshot, UsageTotals};
@@ -46,7 +48,7 @@ impl Provider {
 }
 
 #[derive(Clone)]
-struct Tool { executable: PathBuf, version: String, identity: String, name_flag: bool, remote_flag: bool }
+struct Tool { executable: PathBuf, version: String, identity: String, name_flag: bool, remote_flag: bool, remembered_sha: Option<String> }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct SessionInfo {
@@ -304,6 +306,8 @@ impl SessionManager {
         if has_remote == 0 { sql(tx.execute_batch("ALTER TABLE sessions ADD COLUMN remote_control INTEGER NOT NULL DEFAULT 0 CHECK(remote_control IN (0,1));"))?; }
         let has_exit: i64 = sql(tx.query_row("SELECT count(*) FROM pragma_table_info('sessions') WHERE name='exit_info'", [], |r| r.get(0)))?;
         if has_exit == 0 { sql(tx.execute_batch("ALTER TABLE sessions ADD COLUMN exit_info TEXT; ALTER TABLE sessions ADD COLUMN exit_at TEXT;"))?; }
+        // A cache of the person's own CLI inspection (see remembered.rs). Older app versions ignore the extra table.
+        sql(tx.execute_batch(remembered::SCHEMA))?;
         // Recovery is metadata-only. Never relaunch or resend terminal input.
         sql(tx.execute("UPDATE sessions SET status='interrupted' WHERE status IN ('running','launching')", []))?;
         sql(tx.execute("UPDATE sessions SET status='bootstrap_unknown' WHERE status='bootstrapping'", []))?;
@@ -340,7 +344,7 @@ impl SessionManager {
             return Err("Claude executable/version probe is invalid".into());
         }
         let executable_identity = executable_identity(&executable)?;
-        self.tools.insert(provider, Tool { executable, version: version.into(), identity: executable_identity, name_flag: false, remote_flag: false });
+        self.tools.insert(provider, Tool { executable, version: version.into(), identity: executable_identity, name_flag: false, remote_flag: false, remembered_sha: None });
         Ok(())
     }
     /// Set by the trusted native probe from the CLI's own `--help`; never by web content.

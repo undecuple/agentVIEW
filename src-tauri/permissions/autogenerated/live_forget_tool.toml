@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-live-forget-tool"
+description = "Enables the live_forget_tool command without any pre-configured scope."
+commands.allow = ["live_forget_tool"]
+
+[[permission]]
+identifier = "deny-live-forget-tool"
+description = "Denies the live_forget_tool command without any pre-configured scope."
+commands.deny = ["live_forget_tool"]

@@ -178,16 +178,26 @@
   }
   window.addEventListener('agentview:preferences',e=>applyPreferences(e.detail));
   window.addEventListener('agentview:theme',applyTerminalPrefs);
-  window.addEventListener('agentview:navigate',e=>{if(e.detail==='sessions'){inspected=true;refresh();render();}});
+  // Remembered inspections: the app restores the person's earlier Inspect when the same CLI file is unchanged (checked
+  // natively: path, regular non-link file, not group/other writable, identity, SHA-256). It never runs the CLI here.
+  const changedTools=new Map();
+  async function loadTools(){try{const list=await invoke('live_tools');changedTools.clear();
+    for(const t of list){if(t.changed)changedTools.set(t.provider,t);else{tools.set(t.provider,t);changedTools.delete(t.provider);}}
+    showTool();}catch{}}
+  window.addEventListener('agentview:navigate',e=>{if(e.detail==='sessions'){inspected=true;loadTools();refresh();render();}});
   function showTool(){
     const provider=$('live-provider').value,tool=tools.get(provider);
     $('live-probe').textContent=`Inspect ${providerName(provider)} CLI`;
-    $('live-tool').textContent=tool?`${providerName(provider)} · ${tool.executable} · ${tool.version}. Review this tool and project before starting.`:`${providerName(provider)} has not been inspected. No process starts automatically.`;
+    const was=changedTools.get(provider);
+    $('live-tool').textContent=tool?(tool.remembered?`${providerName(provider)}: remembered from your earlier Inspect: ${tool.executable} ${tool.version}, unchanged since (checked by hash). Review the project before starting.`:`${providerName(provider)} · ${tool.executable} · ${tool.version}. Review this tool and project before starting.`)
+      :was?`${providerName(provider)} changed (${was.version} → ?): ${was.changed}. Inspect it again.`:`${providerName(provider)} has not been inspected. No process starts automatically.`;
+    $('live-forget').hidden=!(tool&&tool.remembered);
     $('live-register').disabled=!tool;render();
   }
   $('live-provider').onchange=showTool;
   $('live-filter').onchange=()=>{render();AppPrefs.remember({live_provider_filter:$('live-filter').value});};
-  $('live-probe').onclick=async()=>{const provider=$('live-provider').value;try{const tool=await invoke('live_probe',{provider});tools.set(provider,tool);showTool();inspected=true;await refresh();}catch(e){notice(String(e));}};
+  $('live-probe').onclick=async()=>{const provider=$('live-provider').value;try{const tool=await invoke('live_probe',{provider});tools.set(provider,tool);changedTools.delete(provider);showTool();inspected=true;await refresh();}catch(e){notice(String(e));}};
+  $('live-forget').onclick=async()=>{const provider=$('live-provider').value;try{await invoke('live_forget_tool',{provider});tools.delete(provider);changedTools.delete(provider);showTool();notice(`${providerName(provider)}: the remembered inspection is deleted. Inspect it again before starting.`);}catch(e){notice(String(e));}};
   $('live-create').onsubmit=async event=>{event.preventDefault();if(busy)return;busy=true;mutation++;try{const s=await invoke('live_create',{provider:$('live-provider').value,label:$('live-label').value,projectDir:$('live-directory').value});selected=s.id;await refresh();notice('Project registered. Start explicitly after reviewing the directory and CLI above.');}catch(e){notice(String(e));}finally{busy=false;render();}};
   // Changes in the selected session's repository: files changed now and commits since the app started or resumed the session. Read-only git on the Rust side.
   let chgTimer=null,chgFor=null;
@@ -295,5 +305,6 @@
   $('live-tab-add').onchange=()=>{const id=$('live-tab-add').value;if(okId(id))select(id);};
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)wakePoll();});
   wakePoll=()=>{const s=current(),t=s&&terminals.get(`${s.id}:${s.generation}`);if(t)t.quiet=0;if(sleeper)sleeper();};
+  loadTools();
   (async function loop(){for(;;){const ms=(await pollTerminal().catch(()=>500))||120;await new Promise(r=>{sleeper=r;setTimeout(r,ms);});}})();
 })();
