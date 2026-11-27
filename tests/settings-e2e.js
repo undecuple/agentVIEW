@@ -27,7 +27,7 @@
       await until(()=>document.body.dataset.appliedScale==='110','native scale applied');
       assert(!$('preferences-notice').textContent,'retry clears the scale error only after successful apply');
       const saved=await snapshot();assert(saved.settings.theme==='light'&&saved.settings.preferred_provider==='codex','appearance/provider preferences persisted');
-      assert(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()==='#ffffff','matching Cyberdream light palette applied');
+      assert(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()==='#fdfbfa','agentVIEW light palette applied');
       assert(saved.settings.quick_prompts[1].id==='inbox'&&saved.settings.quick_prompts[1].label==='Inbox fixture','preset edit and reorder persisted');
       assert((await invoke('live_snapshot')).length===0,'settings and About do not launch/register a CLI');
       let conflict=false;try{await invoke('app_settings_save',{expectedRevision:0,settings:saved.settings});}catch(_){conflict=true;}assert(conflict,'stale settings revision cannot overwrite a newer save');

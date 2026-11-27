@@ -36,9 +36,9 @@ Page details added later: `away.js` is the Overview "I'm stepping away" card (`a
 
 ## Themes and styles
 
-Stylesheets load in this order (`calm.css` is last and holds the Calm look: palette, sans-serif type, one card style, spacing scale): `workspace.css` (layout), `vendor/xterm.css`, `settings.css` (Cyberdream Light variables and settings panels), `identity.css` (brand, sidebar, console layout, the Molokai-style dark palette and the two PaperColor palettes). `identity.css` is last and overrides the others.
+Stylesheets load in this order (`terminal.css` is last and holds the Terminal look: monospace type, square corners, double-line frames, one green accent; `calm.css` before it holds the shared spacing and layout rules): `workspace.css` (layout), `vendor/xterm.css`, `settings.css` (Cyberdream Light variables and settings panels), `identity.css` (brand, sidebar, console layout, the Molokai-style dark palette and the two PaperColor palettes). `identity.css` is last and overrides the others.
 
-Setting values: `dark` (Calm Dark, the default), `light` (Calm Light), `papercolor-light`, `papercolor-dark`, `system` (follows the operating system and picks `light` or `dark` only). `appearance()` in `prefs.js` sets `data-theme` and `data-density` on the root element and swaps the sidebar mark between the dark and light SVG.
+Setting values: `dark` (Terminal Dark, the default), `light` (Terminal Light), `papercolor-light`, `papercolor-dark`, `system` (follows the operating system and picks `light` or `dark` only). `appearance()` in `prefs.js` sets `data-theme` and `data-density` on the root element and swaps the sidebar mark between the dark and light SVG.
 
 ## How assets are embedded and served
 
