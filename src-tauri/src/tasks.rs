@@ -44,11 +44,23 @@ pub struct Event { t: i64, session: String, project: String, start: bool, label:
 
 pub fn file() -> Result<PathBuf, String> { Ok(super::hooksignal::dir()?.join("claude-tasks.jsonl")) }
 
-fn label_of(m: &str, deny: &[String]) -> String {
+/// True for a word that looks like a path and names a denied folder or file anywhere in it. A word looks like a path when, after
+/// quotes, brackets and trailing punctuation around it are dropped, it contains `/` or `\` or starts with `$`, `.` or `~`
+/// (so `(/x/.ssh/id_rsa)`, `foo/.ssh/key`, `./.env`, `$HOME/.aws/credentials` and Windows paths with backslashes all count). Backslashes
+/// are read as folder separators.
+pub(crate) fn path_word_denied(w: &str, deny: &[String]) -> bool {
+    let t = w.trim_matches(|c: char| matches!(c, '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | '"' | '\'' | '`' | ',' | ';' | ':' | '!' | '?'));
+    if !(t.contains('/') || t.contains('\\') || t.starts_with('$') || t.starts_with('.') || t.starts_with('~')) { return false; }
+    let n = t.replace('\\', "/");
+    let trimmed = n.trim_end_matches(['.', ',', ';', ':']);
+    agent_app_core::policy::denied_name(&n, deny) || agent_app_core::policy::denied_name(trimmed, deny)
+}
+
+pub(crate) fn label_of(m: &str, deny: &[String]) -> String {
     let first = m.lines().next().unwrap_or("");
     let clean: String = first.chars().filter(|c| !c.is_control()).collect();
     // A path-like word that names a denied folder or file is replaced as a whole.
-    let masked: Vec<&str> = clean.split_whitespace().map(|w| if (w.starts_with('/') || w.starts_with('~')) && agent_app_core::policy::denied_name(w, deny) { "[hidden]" } else { w }).collect();
+    let masked: Vec<&str> = clean.split_whitespace().map(|w| if path_word_denied(w, deny) { "[hidden]" } else { w }).collect();
     // Redact the whole line first, then cut: cutting first could split a key so the pattern no longer matches.
     let l: String = agent_app_core::policy::redact(&masked.join(" ")).chars().take(LABEL_CHARS).collect();
     if l.is_empty() { "(no text)".into() } else { l }
@@ -127,7 +139,7 @@ struct RawUsage { input_tokens: Option<u64>, output_tokens: Option<u64>, cache_c
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Use { t: i64, session: Option<String>, tok: Tokens }
 #[derive(Debug, Default)]
-pub struct Loaded { uses: Vec<Use>, first_t: Option<i64>, tail_only: bool }
+pub struct Loaded { uses: Vec<Use>, first_t: Option<i64>, pub(crate) tail_only: bool }
 
 /// "2026-11-11T07:50:39.626Z" to whole seconds since the epoch (UTC; any other offset is refused).
 pub fn parse_ts(s: &str) -> Option<i64> {
@@ -174,6 +186,13 @@ pub fn sum_window(l: &Loaded, session: &str, start: i64, end: i64) -> Tokens {
     a
 }
 
+/// Sum of every usage line (a subagent's own transcript belongs to that subagent as a whole).
+pub(crate) fn sum_all(l: &Loaded) -> Tokens {
+    let mut a = Tokens::default();
+    for u in &l.uses { a.input = a.input.saturating_add(u.tok.input); a.output = a.output.saturating_add(u.tok.output); a.cache_creation = a.cache_creation.saturating_add(u.tok.cache_creation); a.cache_read = a.cache_read.saturating_add(u.tok.cache_read); }
+    a
+}
+
 /// Opens a transcript only if `tp` is an absolute .jsonl path inside `<root>/projects`, at least `<slug>/<file>` deep, with no symlink on
 /// the way and a regular file at the end. The Err text is shown on the page instead of the number; it never contains the path.
 pub fn open_transcript(root: &Path, tp: &str) -> Result<std::fs::File, &'static str> {
@@ -210,12 +229,13 @@ fn read_transcript(root: &Path, tp: &str) -> Result<Loaded, &'static str> {
 }
 
 type CacheKey = (PathBuf, u64, Option<std::time::SystemTime>);
-/// At least as many as one report can ask for (the report reads up to 25 transcripts), so a 5 s refresh does not re-read them all.
-const CACHE_ENTRIES: usize = 32;
-const _: () = assert!(CACHE_ENTRIES >= MAX_TRANSCRIPTS);
+/// At least as many as the tasks report (25 transcripts) and the subagents report (their newest transcripts) read together, so a
+/// 5 s refresh of the Flow page does not re-read them all.
+const CACHE_ENTRIES: usize = 48;
+const _: () = assert!(CACHE_ENTRIES >= MAX_TRANSCRIPTS + super::subagents::MAX_TOKEN_READS);
 static CACHE: std::sync::Mutex<Vec<(CacheKey, std::sync::Arc<Loaded>)>> = std::sync::Mutex::new(Vec::new());
 
-fn load_cached(root: &Path, tp: &str) -> Result<std::sync::Arc<Loaded>, &'static str> {
+pub(crate) fn load_cached(root: &Path, tp: &str) -> Result<std::sync::Arc<Loaded>, &'static str> {
     let f = open_transcript(root, tp)?;
     let m = f.metadata().map_err(|_| "the transcript file could not be read")?;
     drop(f);
@@ -296,7 +316,7 @@ struct RawRun {
 }
 
 fn run_id_ok(s: &str) -> bool { s.starts_with("wf_") && s.len() <= 40 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_')) }
-fn dir_name_ok(s: &str) -> bool { !s.is_empty() && s.len() <= 200 && !s.starts_with('.') && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.')) }
+pub(crate) fn dir_name_ok(s: &str) -> bool { !s.is_empty() && s.len() <= 200 && !s.starts_with('.') && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.')) }
 
 pub fn parse_run(bytes: &[u8], file_stem: &str, project: &str) -> Option<Run> {
     let r: RawRun = serde_json::from_slice(bytes).ok()?;
@@ -521,6 +541,17 @@ mod tests {
         let rep = scan_runs(d.path(), 10, &deny()); let j = serde_json::to_string(&rep).unwrap();
         assert!(!j.contains("alice") && !j.contains("-work-") && !j.contains("secret") && !j.contains("sess-9") && !j.contains("sess-8") && !j.contains("home"), "{j}");
         assert_eq!(rep.runs.iter().map(|r| r.project.as_str()).collect::<std::collections::BTreeSet<_>>(), ["", "shown"].into_iter().collect());
+    }
+    #[test] fn denied_names_are_masked_in_every_path_form() {
+        let home = ["/ho", "me/x"].concat();
+        for w in [format!("({home}/.ssh/id_rsa)"), format!("\"{home}/.ssh/id_rsa\""), format!("'{home}/.ssh/id_rsa'"), "foo/.ssh/key".into(), "./.env".into(), ".env".into(),
+                  "$HOME/.aws/credentials".into(), format!("C:\\{}\\x\\.ssh\\id_rsa", ["Us", "ers"].concat()), "~/.ssh/config.".into(), "[src/.env.local]".into(), "x=/srv/p/.git-credentials".into()] {
+            assert!(path_word_denied(&w, &deny()), "{w}");
+            let l = label_of(&format!("read {w} now"), &deny());
+            assert_eq!(l, "read [hidden] now", "{w}");
+        }
+        let win_docs = format!("C:\\{}\\x\\docs", ["Us", "ers"].concat());
+        for w in ["src/main.rs", "./run.sh", "$PATH", "plain", "see (notes)", win_docs.as_str()] { assert!(!path_word_denied(w, &deny()), "{w}"); }
     }
     #[test] fn path_like_words_naming_a_denied_name_are_masked_in_the_label() {
         let a = ev(r#"{"t":5,"s":"a","c":"/p","k":"start","m":"look at /srv/work/x and ~/.ssh/id_rsa then /srv/ok/file"}"#);

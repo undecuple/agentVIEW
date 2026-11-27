@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-subagents-report"
+description = "Enables the subagents_report command without any pre-configured scope."
+commands.allow = ["subagents_report"]
+
+[[permission]]
+identifier = "deny-subagents-report"
+description = "Denies the subagents_report command without any pre-configured scope."
+commands.deny = ["subagents_report"]

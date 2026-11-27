@@ -142,8 +142,15 @@ dialog::backdrop{background:#0008}
 details>summary,.live-recipe summary{font-size:.9375rem;font-weight:600;color:var(--text)}
 details.muted>summary{font-weight:500;color:var(--muted);font-size:.875rem}
 .q-block th,.q-block td{font-family:var(--sans)}
-#flow-svg{max-height:340px;min-height:0}
-#flow-svg:empty{display:none}
+/* The Flow diagram pans and zooms inside a box the user can make taller (drag its bottom-right corner). */
+.flow-wrap{position:relative;height:420px;min-height:200px;max-height:85vh;resize:vertical;overflow:hidden;border:1px solid var(--line)}
+.flow-wrap[hidden]{display:none}
+#flow-svg{width:100%;height:100%;max-height:none;min-height:0;cursor:grab;touch-action:none;user-select:none}
+#flow-svg.dragging{cursor:grabbing}
+#flow-svg:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.flow-tools{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:1}
+.flow-tools button{min-width:32px;height:32px;padding:0 6px;line-height:1}
+.flow-legend-item{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .flow-legend{font-size:.8125rem;margin-top:var(--s3)}
 .chip{white-space:nowrap}
 #live-terminal,.live-terminal-panel pre{font-family:var(--mono)}
