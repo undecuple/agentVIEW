@@ -86,8 +86,10 @@ fn two_projects_exact_ids_and_controlling_terminals() {
         manager.write(&live.id,&live.generation,b"size\n").unwrap();
         assert!(output(&mut manager,&live,"SIZE:132:43").contains("SIZE:132:43"));
     }
+    assert_eq!(MAX_ACTIVE,30,"the live-session limit is 30");
+    manager.set_max_active(2); // the limit check itself, without starting 30 processes
     let c=manager.create("Third",&fixture.a).unwrap();
-    assert!(manager.start(&c.id).unwrap_err().contains("Two live"));
+    assert!(manager.start(&c.id).unwrap_err().contains("Live session limit reached (2 at once)"));
     manager.shutdown().unwrap();
     assert!(manager.list().unwrap().iter().all(|s|s.status=="stopped" || !s.attempted));
 }
