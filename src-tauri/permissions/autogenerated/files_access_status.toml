@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-files-access-status"
+description = "Enables the files_access_status command without any pre-configured scope."
+commands.allow = ["files_access_status"]
+
+[[permission]]
+identifier = "deny-files-access-status"
+description = "Denies the files_access_status command without any pre-configured scope."
+commands.deny = ["files_access_status"]

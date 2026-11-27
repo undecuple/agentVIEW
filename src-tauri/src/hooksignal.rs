@@ -25,8 +25,8 @@ pub fn snippet_safe(p: &str) -> bool { !p.contains(|c: char| matches!(c, '\'' | 
 pub fn file() -> Result<PathBuf, String> { Ok(dir()?.join("claude-notify.jsonl")) }
 pub fn codex_file() -> Result<PathBuf, String> { Ok(dir()?.join("codex-notify.jsonl")) }
 
-fn safe_id(s: &str) -> bool { !s.is_empty() && s.len() <= 80 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') }
-fn clean(s: &str, max: usize) -> String { s.chars().filter(|c| !c.is_control()).take(max).collect() }
+pub(crate) fn safe_id(s: &str) -> bool { !s.is_empty() && s.len() <= 80 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') }
+pub(crate) fn clean(s: &str, max: usize) -> String { s.chars().filter(|c| !c.is_control()).take(max).collect() }
 
 pub fn parse_line(line: &str) -> Option<Signal> {
     if line.len() > 4096 { return None; }

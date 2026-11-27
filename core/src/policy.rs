@@ -213,6 +213,11 @@ fn denied(real: &Path, deny: &[String]) -> Option<String> {
     None
 }
 
+/// True when any component of the (unresolved) path text matches a denied name. Text only: it never touches the disk.
+pub fn denied_name(path: &str, deny: &[String]) -> bool {
+    path.split('/').any(|part| !part.is_empty() && deny.iter().any(|d| glob_match(d, part)))
+}
+
 pub fn check(path: &str, cfg: &Config) -> Result<PathBuf, Refused> {
     if path.contains('\0') {
         return Err(Refused("bad path".into()));
