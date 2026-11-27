@@ -28,7 +28,8 @@ pub type Result<T> = std::result::Result<T, String>;
 const RECIPE: &str = "claude-interactive-v1";
 const CODEX_RECIPE: &str = "codex-native-resume-v1";
 const MAX_SESSIONS: i64 = 64;
-const MAX_ACTIVE: usize = 2;
+/// Most sessions that may run at once. Each is a real process with its own terminal and a 256 KiB output buffer.
+const MAX_ACTIVE: usize = 30;
 const RING_BYTES: usize = 256 * 1024;
 const READ_BYTES: usize = 64 * 1024;
 const WRITE_BYTES: usize = 16 * 1024;
@@ -178,6 +179,7 @@ pub struct SessionManager {
     tools: HashMap<Provider, Tool>,
     cancel: Arc<AtomicBool>,
     running: HashMap<String, Running>,
+    max_active: usize,
     // Keep the lease through cleanup. It serializes app-managed writers using
     // this metadata directory, not external provider clients or copied stores.
     _lease: Option<File>,
@@ -306,7 +308,7 @@ impl SessionManager {
         sql(tx.execute("UPDATE sessions SET status='interrupted' WHERE status IN ('running','launching')", []))?;
         sql(tx.execute("UPDATE sessions SET status='bootstrap_unknown' WHERE status='bootstrapping'", []))?;
         sql(tx.commit())?;
-        Ok(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), _lease: Some(lease) })
+        Ok(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), max_active: MAX_ACTIVE, _lease: Some(lease) })
     }
 
     /// A second, read-mostly view of an EXISTING session store for usage reading only. It takes no instance lease,
@@ -320,12 +322,14 @@ impl SessionManager {
         let connection = sql(Connection::open_with_flags(&db_path,
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW))?;
         sql(connection.busy_timeout(Duration::from_secs(2)))?;
-        Ok(UsageView(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), _lease: None }))
+        Ok(UsageView(Self { connection, tools: HashMap::new(), cancel: Arc::new(AtomicBool::new(false)), running: HashMap::new(), max_active: MAX_ACTIVE, _lease: None }))
     }
 
     /// The window owner can cancel an in-progress bootstrap without acquiring
     /// the manager mutex. This method never clears a pending close request.
     pub fn set_cancel_flag(&mut self, flag: Arc<AtomicBool>) { self.cancel = flag; }
+    #[cfg(test)]
+    fn set_max_active(&mut self, n: usize) { self.max_active = n; }
 
     /// Only the trusted native probe can configure tools; web payloads must not
     /// supply executable/version. Configuring a provider never executes it.
@@ -433,7 +437,7 @@ impl SessionManager {
         self.refresh()?;
         if self.cancel.load(Ordering::Acquire) { return Err("Session launch cancelled by workspace close".into()); }
         if self.running.get(id).is_some_and(|r| r.child.is_some()) { return Err("Session is already running".into()); }
-        if self.running.values().filter(|r| r.child.is_some()).count() >= MAX_ACTIVE { return Err("Two live sessions are already active".into()); }
+        if self.running.values().filter(|r| r.child.is_some()).count() >= self.max_active { return Err(format!("Live session limit reached ({} at once); stop one first", self.max_active)); }
         let mut info = self.get(id)?;
         validate_provider_environment(info.provider)?;
         let tool = self.tools.get(&info.provider).cloned().ok_or("Inspect this provider's installed CLI before starting its session")?;

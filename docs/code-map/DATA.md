@@ -94,7 +94,7 @@ The only browser-side storage is the sidebar-collapse flag in `localStorage`.
 
 ## In-memory state (lost on exit)
 
-- Terminal output: a ring buffer of 256 KiB per running session (at most 2 running). Reads return up to 64 KiB and report `truncated` if the offset fell out of the buffer; writes are at most 16 KiB. Terminal content is never saved.
+- Terminal output: a ring buffer of 256 KiB per running session (at most 30 running, about 7.5 MiB of buffers in all). Reads return up to 64 KiB and report `truncated` if the offset fell out of the buffer; writes are at most 16 KiB. Terminal content is never saved.
 - The "Needs you" list (30 lines, 6 hours, `notify.rs`), the session timeline (300 events, 24 hours, `notify.rs`), the time each session was started in this app run (`live.rs`, for "Changes in this project"), and the hourly send counters for webhooks and desktop notifications.
 - `LiveState` (the session manager and the usage connection), `WorkspaceState` (the store) and the parsed allow-list.
 

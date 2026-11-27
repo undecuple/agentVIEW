@@ -221,6 +221,7 @@ fn two_providers_use_stored_tags_and_share_only_the_total_slot_limit() {
     let codex=manager.start(&codex.id).unwrap();terminal(&mut manager,&codex,"READY:");
     assert_eq!(claude.provider_session_id.as_deref(),Some(claude.id.as_str()));
     assert_ne!(codex.provider_session_id.as_deref(),Some(codex.id.as_str()));
+    manager.set_max_active(2); // the shared total limit, without starting 30 processes
     let third=manager.create("Third",&fixture.project).unwrap();assert!(manager.start(&third.id).is_err());
     assert!(Provider::parse("model-output-provider").is_err());
     manager.shutdown().unwrap();
