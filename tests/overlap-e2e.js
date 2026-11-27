@@ -82,7 +82,48 @@
         if(name==='cc'){for(const tb of ['settings','skills','memory','history','projects']){window.AppCcTabs.select(tb);await check('cc-'+tb,scale);}}
         if(name==='settings'){for(const tab of ['data','notifications','about']){window.AppSettingsTabs.select(tab);await check('settings-'+tab,scale);}window.AppSettingsTabs.select('general');}
         if(name==='flow'){await sleep(1500);await until(()=>$('tasks-body').children.length>=3&&$('wfruns-body').children.length>=1,'seeded tasks and workflow rows');
-          report('tasks',`rows=${$('tasks-body').children.length} runs=${$('wfruns-body').children.length}`);$('tasks-table').closest('.card').scrollIntoView({block:'start'});await sleep(300);}
+          report('tasks',`rows=${$('tasks-body').children.length} runs=${$('wfruns-body').children.length}`);$('tasks-table').closest('.card').scrollIntoView({block:'start'});await sleep(300);
+          // Synthetic sessions with subagents (the fixture has no live sessions): long names, every state, more than four recent.
+          const sid=i=>`0000000${i}-1c2d-4e5f-8a9b-0c1d2e3f4a5b`,mk=(i,state,age)=>({id:'a'+i,kind:i%2?'general-purpose':'Explore',description:'Review the very long synthetic description of what this subagent was asked to do here',state,depth:1+(i%3),age,tokens:i%3?null:{input:1234567,output:89012,cache_creation:3456,cache_read:9876543},tokens_why:'running; counted when it finishes'});
+          const rows=[0,1,2].map(i=>({id:sid(i),display_name:'Example long-named coordinator '+i,label:'',project:'a-very-long-synthetic-project-directory-name',provider:'claude',status:'running',running:true,idle_ms:0}));
+          window.AppFlow.show(rows,{note:'',sessions:[{session:sid(0),skipped:2,truncated:true,more_files:true,search_truncated:false,found:true,subs:[mk(1,'running',5),mk(2,'running',30),mk(3,'finished',120),mk(4,'stale',900),mk(5,'finished',1800),mk(6,'finished',7200)]},{session:sid(1),skipped:0,truncated:false,subs:[mk(7,'finished',60)]},{session:sid(2),skipped:0,truncated:false,subs:[]}]});
+          await sleep(200);if($('flow-svg').querySelectorAll('.flow-subnode').length!==5)throw new Error('subagent nodes');
+          // Pan and zoom with synthetic wheel, pointer and key events (real mouse input cannot run headless).
+          {const svg=$('flow-svg'),F=window.AppFlow,r=svg.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,num=()=>F.view().split(' ').map(Number);
+           const fitV=F.view();if(Math.abs(F.zoom()-1)>1e-6)throw new Error('starts fitted');
+           svg.dispatchEvent(new WheelEvent('wheel',{deltaY:-300,clientX:cx,clientY:cy,bubbles:true,cancelable:true}));if(!(F.zoom()>1.4))throw new Error('wheel zoom '+F.zoom());
+           const before=num();svg.dispatchEvent(new PointerEvent('pointerdown',{pointerId:7,button:0,buttons:1,clientX:cx,clientY:cy,bubbles:true}));
+           svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:7,buttons:1,clientX:cx+80,clientY:cy+40,bubbles:true}));
+           if(!svg.classList.contains('dragging'))throw new Error('grabbing cursor');
+           svg.dispatchEvent(new PointerEvent('pointerup',{pointerId:7,button:0,clientX:cx+80,clientY:cy+40,bubbles:true}));
+           const after=num();if(!(after[0]<before[0]&&after[1]<before[1])||after[2]!==before[2])throw new Error('drag pan '+before+' -> '+after);if(svg.classList.contains('dragging'))throw new Error('drag ended');
+           const kept=F.view();window.AppFlow.show(rows,{note:'',sessions:[{session:sid(0),skipped:2,truncated:true,more_files:true,search_truncated:false,found:true,subs:[mk(1,'running',5),mk(2,'running',30),mk(3,'finished',120),mk(4,'stale',900),mk(5,'finished',1800),mk(6,'finished',7200)]},{session:sid(1),skipped:0,truncated:false,subs:[mk(7,'finished',60)]},{session:sid(2),skipped:0,truncated:false,subs:[]}]});
+           if(F.view()!==kept)throw new Error('view kept across a redraw');
+           await sleep(20); // the click that ends a drag is swallowed only within the same task
+           // A press that moves 2 px and is released outside the diagram ends the drag: a later move with no button must not pan.
+           {const v=F.view();svg.dispatchEvent(new PointerEvent('pointerdown',{pointerId:9,button:0,buttons:1,clientX:cx,clientY:cy,bubbles:true}));
+            svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:9,buttons:1,clientX:cx+2,clientY:cy,bubbles:true}));
+            document.body.dispatchEvent(new PointerEvent('pointerup',{pointerId:9,button:0,buttons:0,clientX:5,clientY:5,bubbles:true}));
+            svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:9,buttons:0,clientX:cx+120,clientY:cy+60,bubbles:true}));
+            if(F.view()!==v||svg.classList.contains('dragging'))throw new Error('release outside ends the drag');
+            svg.dispatchEvent(new PointerEvent('pointerdown',{pointerId:10,button:0,buttons:1,clientX:cx,clientY:cy,bubbles:true}));
+            svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:10,buttons:0,clientX:cx+120,clientY:cy+60,bubbles:true}));
+            svg.dispatchEvent(new PointerEvent('pointermove',{pointerId:10,buttons:0,clientX:cx+200,clientY:cy+90,bubbles:true}));
+            if(F.view()!==v)throw new Error('a move with no button pressed must not pan');}
+           let clicked=0;const node=svg.querySelector('.flow-sess');node.addEventListener('click',()=>clicked++,{once:true});
+           svg.dispatchEvent(new PointerEvent('pointerdown',{pointerId:8,button:0,buttons:1,clientX:cx,clientY:cy,bubbles:true}));svg.dispatchEvent(new PointerEvent('pointerup',{pointerId:8,button:0,clientX:cx+1,clientY:cy,bubbles:true}));
+           node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));if(clicked!==1)throw new Error('a click without movement reaches the node');
+           for(let i=0;i<40;i++)svg.dispatchEvent(new WheelEvent('wheel',{deltaY:-500,ctrlKey:true,clientX:cx,clientY:cy,bubbles:true,cancelable:true}));if(F.zoom()>4+1e-6)throw new Error('zoom max');
+           for(let i=0;i<40;i++)$('flow-zoom-out').click();if(F.zoom()<0.25-1e-6)throw new Error('zoom min');
+           svg.focus();svg.dispatchEvent(new KeyboardEvent('keydown',{key:'0',bubbles:true,cancelable:true}));if(F.view()!==fitV)throw new Error('0 fits');
+           const k0=num();svg.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));if(!(num()[0]>k0[0]))throw new Error('arrow pans');
+           svg.dispatchEvent(new KeyboardEvent('keydown',{key:'+',bubbles:true,cancelable:true}));if(!(F.zoom()>1.2))throw new Error('plus zooms');
+           $('flow-reset').click();if(Math.abs(F.zoom()-1)>1e-6||num()[0]!==0)throw new Error('reset');
+           $('flow-fit').click();if(F.view()!==fitV)throw new Error('fit button');
+           report('panzoom','ok');}if($('subs-body').children.length!==7)throw new Error('subagent rows');
+          report('subs',`nodes=${$('flow-svg').querySelectorAll('.flow-subnode').length} rows=${$('subs-body').children.length}`);
+          await check('flow-subs',scale);$('flow-svg').scrollIntoView({block:'start'});await sleep(300);report('capture',`flowsubs-${scale}`);await sleep(1300);
+          $('tasks-table').closest('.card').scrollIntoView({block:'start'});await sleep(300);}
         report('capture',`${name}-${scale}`);await sleep(1300);
       }
     }

@@ -45,7 +45,7 @@ Tested locally on Linux with WebKitGTK and a private X display:
 | Area | Current state |
 | --- | --- |
 | Overview | All registered sessions: state, terminal data flow, token totals from local records, latest Claude tool name, an attention queue and stop-all. Sub-agents and network bandwidth are not observable and are not shown |
-| Flow | Read-only graph from you to providers to sessions with process-status dots (running, quiet, stopped with an error); no approval state and no sub-agents |
+| Flow | Read-only graph from you to providers to sessions with process-status dots (running, quiet, stopped with an error), and under each Claude session the subagents it spawned (from Claude Code's own session folders, no hook); a Subagents list with type, short redacted description, state, depth, age and tokens; no approval state |
 | Git | Read-only status of repositories that contain an allowed path: branch, ahead/behind, changed files, recent commits, identity check; fixed `git` commands, no writes |
 | Webhooks | Up to five private https destinations, each choosing which events to send ("may be waiting for you" after 10 quiet minutes, stopped with an error, finished); the address is never shown again |
 | Backup | Copies the app's exports folder to an rclone remote you already set up, dry run first, add-only |
