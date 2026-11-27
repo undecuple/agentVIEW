@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-workflows-report"
+description = "Enables the workflows_report command without any pre-configured scope."
+commands.allow = ["workflows_report"]
+
+[[permission]]
+identifier = "deny-workflows-report"
+description = "Denies the workflows_report command without any pre-configured scope."
+commands.deny = ["workflows_report"]

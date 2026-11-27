@@ -81,6 +81,8 @@
         await check(name,scale);
         if(name==='cc'){for(const tb of ['settings','skills','memory','history','projects']){window.AppCcTabs.select(tb);await check('cc-'+tb,scale);}}
         if(name==='settings'){for(const tab of ['data','notifications','about']){window.AppSettingsTabs.select(tab);await check('settings-'+tab,scale);}window.AppSettingsTabs.select('general');}
+        if(name==='flow'){await sleep(1500);await until(()=>$('tasks-body').children.length>=3&&$('wfruns-body').children.length>=1,'seeded tasks and workflow rows');
+          report('tasks',`rows=${$('tasks-body').children.length} runs=${$('wfruns-body').children.length}`);$('tasks-table').closest('.card').scrollIntoView({block:'start'});await sleep(300);}
         report('capture',`${name}-${scale}`);await sleep(1300);
       }
     }
