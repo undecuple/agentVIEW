@@ -34,7 +34,7 @@ fn every_closed_choice_and_numeric_limit_is_validated_before_mutation(){
     for value in [9,25]{let mut s=defaults.clone();s.terminal_font_size=value;invalid.push(s);}
     let mut s=defaults.clone();s.terminal_scrollback=10001;invalid.push(s);
     for value in [1,59,301,901]{let mut s=defaults.clone();s.usage_refresh_seconds=value;invalid.push(s);}
-    for field in ["theme","density","default_page","preferred_provider","hierarchy_provider","hierarchy_project","hierarchy_status","hierarchy_view","live_provider_filter","usage_provider","usage_period"]{
+    for field in ["theme","density","default_page","preferred_provider","hierarchy_provider","hierarchy_project","hierarchy_status","hierarchy_view","live_provider_filter","usage_provider","usage_period","close_behavior"]{
         let mut value=serde_json::to_value(&defaults).unwrap();value[field]=json!("unrecognized-private-value");invalid.push(serde_json::from_value(value).unwrap());
     }
     for setting in invalid{let error=store.settings_save(0,setting).unwrap_err();assert!(!error.contains("unrecognized-private-value"));assert_eq!(store.settings_snapshot().unwrap().revision,0);}
@@ -160,4 +160,20 @@ fn old_workspace_migrates_settings_tables_without_creating_a_preference_row(){
     Connection::open(&path).unwrap().execute_batch("DROP TABLE app_settings; DROP TABLE app_settings_recovery; PRAGMA user_version=1;").unwrap();
     let store=Store::open(&path).unwrap();assert_eq!(store.settings_snapshot().unwrap().revision,0);assert_eq!(store.agents().unwrap().len(),14);
     assert_eq!(Connection::open(&path).unwrap().query_row("PRAGMA user_version",[],|r|r.get::<_,i64>(0)).unwrap(),2);
+}
+
+#[test]
+fn close_behavior_defaults_to_stop_validates_and_old_records_without_it_still_load(){
+    let (_temp,path,mut store)=fixture();
+    assert_eq!(AppSettings::default().close_behavior,"stop");
+    assert_eq!(store.settings_snapshot().unwrap().settings.close_behavior,"stop");
+    // A record saved before the preference existed has no such key: it loads with the safe default, not as damaged.
+    let mut old=serde_json::to_value(AppSettings::default()).unwrap();old.as_object_mut().unwrap().remove("close_behavior");
+    seed(&path,1,1,&json!({"version":1,"settings":old}).to_string());
+    let loaded=store.settings_snapshot().unwrap();assert_eq!(loaded.recovery,None);assert_eq!(loaded.settings.close_behavior,"stop");
+    let mut background=loaded.settings.clone();background.close_behavior="background".into();
+    assert_eq!(store.settings_save(1,background).unwrap().settings.close_behavior,"background");
+    let mut bad=AppSettings::default();bad.close_behavior="hide".into();
+    assert!(store.settings_save(2,bad).is_err());
+    assert_eq!(raw(&path).0,2);
 }

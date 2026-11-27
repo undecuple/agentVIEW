@@ -179,6 +179,18 @@ pub async fn saved_versions(window:tauri::WebviewWindow,state:&LiveState)->Resul
 }
 
 impl LiveState {
+    /// Running session count without waiting: None when the manager is busy or the workspace is closing; Some(0) when no session was ever used.
+    pub fn peek_running(&self)->Option<usize>{
+        if self.closing.load(Ordering::Acquire){return None;}
+        let mut guard=self.manager.try_lock().ok()?;
+        match guard.as_mut(){Some(m)=>m.running_count().ok(),None=>Some(0)}
+    }
+    /// Stops every session for good before the process exits (quit control, idle exit). Waits for a busy manager; the cancel flag ends a stalled start.
+    pub fn stop_for_exit(&self)->Result<(),String>{
+        self.closing.store(true,Ordering::Release);self.cancel.store(true,Ordering::Release);
+        let mut guard=self.manager.lock().map_err(|_| "Session manager lock failed")?;
+        guard.as_mut().map_or(Ok(()),SessionManager::shutdown)
+    }
     /// Activity for the background notifier. Never blocks a terminal action: it returns None when the manager is busy,
     /// not opened yet (no session was ever used in this run) or the workspace is closing.
     pub fn peek_activity(&self)->Option<Vec<agent_app_sessions::Activity>>{

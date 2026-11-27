@@ -16,7 +16,7 @@
       };
       devShells.${system} = {
         default = pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [ cargo rustc gcc pkg-config python3 xvfb-run imagemagick squashfsTools curl ];
+          nativeBuildInputs = with pkgs; [ cargo rustc gcc pkg-config python3 xvfb-run xwininfo imagemagick squashfsTools curl ];
           buildInputs = with pkgs; [ webkitgtk_4_1 gtk3 libsoup_3 librsvg openssl glib cairo pango atk gdk-pixbuf harfbuzz ];
         };
         # Optional isolated Wayland/Niri testing; the user's compositor is never reconfigured.
