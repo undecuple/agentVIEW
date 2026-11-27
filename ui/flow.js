@@ -20,7 +20,8 @@
     const youY=H/2,provY={};
     let idx=0;for(const [p,list] of provs){provY[p]=top+rowH*(idx+(list.length-1)/2)+rowH/2-6;idx+=list.length;}
     const edge=(x1,y1,x2,y2,cls)=>svg.append(el('path',{d:`M${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`,class:'flow-edge '+(cls||''),fill:'none'}));
-    const box=(x,y,w,label,sub,cls,tip)=>{const g=el('g',{class:'flow-node '+(cls||'')});g.append(el('title',{},tip||label));g.append(el('rect',{x,y:y-18,width:w,height:36,rx:8}));g.append(el('text',{x:x+12,y:y-2,class:'flow-label'},label));if(sub)g.append(el('text',{x:x+12,y:y+12,class:'flow-sub'},sub));svg.append(g);return g;};
+    const corner=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--r-ctl'))||0;
+    const box=(x,y,w,label,sub,cls,tip)=>{const g=el('g',{class:'flow-node '+(cls||'')});g.append(el('title',{},tip||label));g.append(el('rect',{x,y:y-18,width:w,height:36,rx:corner}));g.append(el('text',{x:x+12,y:y-2,class:'flow-label'},label));if(sub)g.append(el('text',{x:x+12,y:y+12,class:'flow-sub'},sub));svg.append(g);return g;};
     for(const [p] of provs){edge(150,youY,300,provY[p]);}
     let i=0;for(const [p,list] of provs){for(const a of list){const sy=top+rowH*i+rowH/2-6;edge(450,provY[p],600,sy,state(a)[0]);i++;}}
     box(20,youY,130,'You','decides in the terminal','flow-you');
