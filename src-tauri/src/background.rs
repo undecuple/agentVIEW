@@ -480,7 +480,12 @@ mod tests {
         assert!(matches!(claim(&dir).unwrap(), Claim::Other));
         send(&dir, Command::Show).unwrap();
         send(&dir, Command::Quit).unwrap();
-        assert_eq!(*seen.lock().unwrap(), vec![Command::Show, Command::Quit]);
+        // Each connection is handled on its own thread, so wait (bounded) for both commands; their order is not promised.
+        let began = std::time::Instant::now();
+        while seen.lock().unwrap().len() < 2 && began.elapsed() < Duration::from_secs(5) { std::thread::sleep(Duration::from_millis(10)); }
+        let mut got = seen.lock().unwrap().clone();
+        got.sort_by_key(|c| c.word());
+        assert_eq!(got, vec![Command::Quit, Command::Show]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 
