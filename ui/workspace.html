@@ -202,6 +202,7 @@
         <label class="check-label"><input id="pref-remember" type="checkbox"> Remember hierarchy and session filters</label>
         <label class="check-label"><input id="pref-demo" type="checkbox"> Show the simulated demo workspace</label>
         <label>When I close the window<select id="pref-close"><option value="stop">Stop my sessions and quit</option><option value="background">Keep running sessions in the background</option></select></label>
+        <label class="check-label"><input id="pref-follow-cli" type="checkbox"> Follow Claude Code and Codex updates: after you inspect a new version, saved sessions use it and resume the same conversation</label>
       </div><p class="muted">With "Keep running sessions in the background", closing the window while a session runs only hides it. There is no tray icon: start agentVIEW again to bring the window back, or run <code>agentview --quit</code> to stop everything. With no session running, closing quits as usual, and a hidden agentVIEW quits by itself when its last session ends.</p><p class="muted">Sessions open by default and use your installed Claude Code and Codex CLIs. The simulated demo workspace is off unless enabled here. Start and resume remain explicit actions.</p></fieldset>
       <fieldset><legend>Terminal</legend><div class="settings-grid">
         <label>Font size<input id="pref-font-size" type="number" min="10" max="24" step="1" required></label>

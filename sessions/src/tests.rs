@@ -275,6 +275,42 @@ fn spawn_failure_is_durable_and_recipe_or_version_changes_refuse_resume() {
 }
 
 #[test]
+fn follow_updates_adopts_the_inspected_cli_and_resumes_the_same_id() {
+    let fixture=Fixture::new();
+    let mut manager=fixture.manager();
+    let record=manager.create("Updated CLI",&fixture.a).unwrap();
+    let live=manager.start(&record.id).unwrap();ready(&mut manager,&live);
+    manager.stop(&live.id,&live.generation).unwrap();
+    drop(manager);
+    let saved_version=|m:&mut SessionManager|m.list().unwrap().into_iter().find(|s|s.id==record.id).unwrap().version;
+    // No inspected CLI: refuses whatever the setting says.
+    let mut bare=SessionManager::open_unconfigured(&fixture.dir.join("sessions")).unwrap();
+    assert!(bare.start_with(&record.id,true).unwrap_err().contains("Inspect"));
+    drop(bare);
+    let mut updated=SessionManager::open(&fixture.dir.join("sessions"),&fixture.executable,"fixture-2").unwrap();
+    // Setting off: the strict refusal, record untouched.
+    assert!(updated.start(&record.id).unwrap_err().contains("changed"));
+    assert!(updated.start_with(&record.id,false).unwrap_err().contains("changed"));
+    assert_eq!(saved_version(&mut updated),"fixture-1");
+    // Setting on, project folder missing: refuses and the record is not changed.
+    let moved=fixture.dir.join("moved-a");fs::rename(&fixture.a,&moved).unwrap();
+    assert!(updated.start_with(&record.id,true).unwrap_err().contains("project directory"));
+    assert_eq!(saved_version(&mut updated),"fixture-1");
+    fs::rename(&moved,&fixture.a).unwrap();
+    // Setting on, launch recipe changed: still refuses, record not changed.
+    updated.connection.execute("UPDATE sessions SET recipe='older-recipe' WHERE id=?1",[&record.id]).unwrap();
+    assert!(updated.start_with(&record.id,true).unwrap_err().contains("changed"));
+    assert_eq!(saved_version(&mut updated),"fixture-1");
+    updated.connection.execute("UPDATE sessions SET recipe=?1 WHERE id=?2",[RECIPE,&record.id]).unwrap();
+    // Setting on, only the CLI changed: adopts the inspected one and resumes the same ID.
+    let live=updated.start_with(&record.id,true).unwrap();
+    assert_eq!(live.version,"fixture-2");assert_eq!(live.id,record.id);
+    let observed=ready(&mut updated,&live);
+    assert_eq!(observed["argv"],serde_json::json!(["--resume",record.id]));
+    updated.shutdown().unwrap();
+}
+
+#[test]
 fn stop_cleans_descendants_and_releases_store_after_drop() {
     let fixture=Fixture::new();let mut manager=fixture.manager();
     let record=manager.create("Cleanup",&fixture.a).unwrap();

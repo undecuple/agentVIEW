@@ -124,7 +124,9 @@ static STARTED:std::sync::Mutex<Vec<(String,i64)>>=std::sync::Mutex::new(Vec::ne
 fn now_s()->i64{std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d|d.as_secs() as i64).unwrap_or(0)}
 #[tauri::command]
 pub async fn live_start(window:tauri::WebviewWindow,state:tauri::State<'_,LiveState>,id:String)->Result<SessionInfo,String>{
-    let sid=id.clone();let info=manager(window,&state,move|m|m.start(&id)).await?;
+    // Fails closed: waits for the workspace lock; a poisoned lock or unreadable settings mean the strict check (setting off).
+    let follow={use tauri::Manager;let ws=window.state::<super::WorkspaceState>();ws.0.as_ref().ok().and_then(|s|s.lock().ok().and_then(|s|s.settings_snapshot().ok())).is_some_and(|s|s.settings.follow_cli_updates)};
+    let sid=id.clone();let info=manager(window,&state,move|m|m.start_with(&id,follow)).await?;
     if let Ok(mut s)=STARTED.lock(){s.retain(|(i,_)|*i!=sid);s.push((sid,now_s()));}
     Ok(info)
 }
