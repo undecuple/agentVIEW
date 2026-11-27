@@ -38,5 +38,5 @@
   $('ih-copy-what').onclick=()=>copy(build().desc,'Description copied (home-folder paths were shortened to ~).');
   $('ih-copy-version').onclick=()=>copy(version,'Version copied.');
   $('ih-copy-system').onclick=()=>copy(build().sys,'System text copied.');
-  $('show-settings').addEventListener('click',init);
+  AppNav.onShow('settings',init);
 })();

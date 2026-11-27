@@ -56,6 +56,6 @@
     const sel=$('board-project');if(![...sel.options].some(o=>o.value===n)){const o=document.createElement('option');o.value=n;o.textContent=`${n} (0 cards)`;sel.append(o);}
     sel.value=n;$('board-new').value='';await load(n);};
   $('board-copy').onclick=async()=>{const t=$('board-instr');t.focus();t.select();let ok=false;try{await navigator.clipboard.writeText(t.value);ok=true;}catch{try{ok=document.execCommand('copy');}catch{}}$('board-state').textContent=ok?'Copied.':'Select the text and copy it.';};
-  $('show-flow').addEventListener('click',()=>{loadAlert();refresh();clearInterval(timer);timer=setInterval(()=>{if(!$('board-card').offsetParent){clearInterval(timer);return;}refresh();},5000);});
+  AppNav.onShow('flow',()=>{loadAlert();refresh();clearInterval(timer);timer=setInterval(()=>{if(!$('board-card').offsetParent){clearInterval(timer);return;}refresh();},5000);});
   $('flow-reload').addEventListener('click',refresh);
 })();

@@ -24,6 +24,6 @@
     }
   }
   async function refresh(){try{draw(await invoke('queues_view'));}catch(e){const box=$('queues-body');$('queues-card').hidden=false;box.replaceChildren();const p=document.createElement('p');p.setAttribute('role','status');p.textContent=window.friendly?window.friendly('Could not read the queues',e):String(e);box.append(p);}}
-  $('show-flow').addEventListener('click',()=>{refresh();clearInterval(timer);timer=setInterval(()=>{if(!$('flow-reload').offsetParent){clearInterval(timer);return;}refresh();},5000);});
+  AppNav.onShow('flow',()=>{refresh();clearInterval(timer);timer=setInterval(()=>{if(!$('flow-reload').offsetParent){clearInterval(timer);return;}refresh();},5000);});
   $('flow-reload').addEventListener('click',refresh);
 })();

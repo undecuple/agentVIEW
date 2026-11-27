@@ -27,5 +27,5 @@
     if(repos.some(r=>r.path===keep))sel.value=keep;
     show();
   }
-  $('git-repo').onchange=show;$('git-reload').onclick=load;$('show-git').addEventListener('click',load);
+  $('git-repo').onchange=show;$('git-reload').onclick=load;AppNav.onShow('git',load);
 })();

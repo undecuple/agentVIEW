@@ -105,7 +105,7 @@ impl AppSettings {
     pub fn validate(&self)->Result<()>{
         let one_of=|s:&str,allowed:&[&str]|allowed.contains(&s);
         if !one_of(&self.theme,&["dark","light","system","papercolor-light","papercolor-dark"])||!(80..=150).contains(&self.ui_scale_percent)
-            ||!one_of(&self.density,&["comfortable","compact"])||!one_of(&self.default_page,&["agents","sessions","usage","settings"])
+            ||!one_of(&self.density,&["comfortable","compact"])||!one_of(&self.default_page,&["agents","sessions","overview","flow","usage","notes","docs","settings"])
             ||!one_of(&self.preferred_provider,&["claude","codex"])||!one_of(&self.close_behavior,&["stop","background"])||!one_of(&self.hierarchy_provider,&["","claude","codex"])
             ||!one_of(&self.hierarchy_project,&["","Agent App","Documentation"])||!one_of(&self.hierarchy_status,&["","idle","busy","paused"])
             ||!one_of(&self.hierarchy_view,&["tree","project"])||!one_of(&self.live_provider_filter,&["","claude","codex"])

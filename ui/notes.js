@@ -78,7 +78,6 @@
   $('note-view').onchange=()=>{$('md-panes').dataset.view=$('note-view').value;};
   for(const b of document.querySelectorAll('[data-md]'))b.onclick=()=>wrap(b.dataset.md);
   window.addEventListener('agentview:navigate',e=>{if(e.detail==='notes'){refresh();loadedOnce=true;}});
-  $('show-notes').addEventListener('click',()=>refresh());
   // Export / import bundle (Settings)
   const bs=t=>{$('bundle-summary').textContent=t;};
   async function bundles(){
@@ -88,6 +87,6 @@
   $('bundle-pick').onchange=()=>{$('bundle-preview').disabled=!$('bundle-pick').value;$('bundle-import').disabled=true;};
   $('bundle-preview').onclick=async()=>{try{const s=await invoke('bundle_preview',{name:$('bundle-pick').value});bs(`Valid bundle from app ${s.app_version}: ${s.pages} page(s) on ${s.shelves} shelf(s); preferences included (theme ${s.theme}). Nothing has been imported yet.`);$('bundle-import').disabled=false;}catch(e){bs(String(e));$('bundle-import').disabled=true;}};
   $('bundle-import').onclick=async()=>{try{const r=await invoke('bundle_import',{name:$('bundle-pick').value,includeSettings:$('bundle-settings').checked});bs(`Imported ${r.pages_added} page(s)${r.pages_renamed?` (${r.pages_renamed} renamed with "(imported)")`:''}${r.settings_applied?'; preferences replaced':'; preferences unchanged'}.`);$('bundle-import').disabled=true;refresh();if(r.settings_applied)location.reload();}catch(e){bs(String(e));}};
-  $('show-settings').addEventListener('click',bundles);
+  AppNav.onShow('settings',bundles);
   bundles();
 })();

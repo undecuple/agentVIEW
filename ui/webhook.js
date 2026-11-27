@@ -32,7 +32,7 @@
     if(await run('webhook_save',{id:editing,name:$('hook-name').value,url:$('hook-url').value,enabled:$('hook-enabled').checked,events}))resetForm();
   };
   $('hook-cancel').onclick=resetForm;
-  $('show-settings').addEventListener('click',()=>{resetForm();removing=null;load();});
+  AppNav.onShow('settings',()=>{resetForm();removing=null;load();});
 })();
 (() => {
   const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
@@ -43,7 +43,7 @@
   }
   $('hookcfg-check').onclick=check;
   $('hookcfg-copy').onclick=()=>{const t=$('hookcfg-snippet');t.focus();t.select();try{document.execCommand('copy');$('hookcfg-state').textContent='Copied. Paste it into your Claude settings.';}catch{$('hookcfg-state').textContent='Select the text and copy it.';}};
-  $('show-settings').addEventListener('click',check);
+  AppNav.onShow('settings',check);
 })();
 (() => {
   const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
@@ -54,7 +54,7 @@
   }
   $('codexcfg-check').onclick=check;
   $('codexcfg-copy').onclick=()=>{const t=$('codexcfg-snippet');t.focus();t.select();try{document.execCommand('copy');$('codexcfg-state').textContent='Copied. Paste it into ~/.codex/config.toml.';}catch{$('codexcfg-state').textContent='Select the text and copy it.';}};
-  $('show-settings').addEventListener('click',check);
+  AppNav.onShow('settings',check);
 })();
 (() => {
   const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
@@ -65,7 +65,7 @@
   async function run(a){try{show(await invoke('desktop_notify',a));}catch(e){$('desk-state').textContent=String(e);}}
   $('desk-on').onchange=()=>run({enabled:$('desk-on').checked});
   $('desk-test').onclick=()=>run({test:true});
-  $('show-settings').addEventListener('click',()=>run({}));
+  AppNav.onShow('settings',()=>run({}));
 })();
 (() => {
   const $=id=>document.getElementById(id),invoke=(c,a={})=>AppIPC.invoke(c,a);
@@ -79,7 +79,7 @@
   $('limits-check').onclick=()=>run({});
   $('limits-th').onchange=()=>run({threshold:Number($('limits-th').value)});
   $('limits-copy').onclick=()=>{const t=$('limits-snippet');t.focus();t.select();try{document.execCommand('copy');$('limits-state').textContent='Copied. Add it to your status line script.';}catch{$('limits-state').textContent='Select the text and copy it.';}};
-  $('show-settings').addEventListener('click',()=>run({}));
+  AppNav.onShow('settings',()=>run({}));
 })();
 
 (() => {
@@ -92,5 +92,5 @@
     const box=$('mail-recent');box.replaceChildren();
     for(const m of list.slice().reverse().slice(0,10)){const p=document.createElement('p');p.textContent=`${new Date(m.t*1000).toLocaleString()} · ${m.from} → ${m.to}: ${m.text}`;box.append(p);}
   }
-  $('mail-check').onclick=check;$('show-settings').addEventListener('click',check);
+  $('mail-check').onclick=check;AppNav.onShow('settings',check);
 })();

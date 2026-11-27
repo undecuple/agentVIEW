@@ -18,6 +18,14 @@
       AppWelcome.show();assert(!$('welcome').hidden&&document.querySelectorAll('[data-welcome]').length===3,'the welcome page offers three starting points');
       document.querySelector('[data-welcome="notes"]').click();await until(()=>!$('notes').hidden,'a welcome card opens its page');
       assert(localStorage.getItem('agentview.welcomeSeen')==='1','choosing marks the welcome as seen');
+      // Pages load their data however they are opened, not only on a sidebar click.
+      const gitNote=$('git-note').textContent;
+      AppNav.navigate('cc');await until(()=>$('cc-projects').textContent!=='—','Claude config loads when opened without a click');
+      AppNav.navigate('git');await until(()=>$('git-note').textContent!==gitNote||$('git-repo').options.length>0,'Git loads when opened without a click');
+      document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'0',altKey:true,bubbles:true}));await until(()=>!$('settings').hidden,'Alt+0 opens Settings');
+      assert(!$('quit-box').hidden,'Quit sits on the General settings tab');
+      AppSettingsTabs.select('data');assert($('quit-box').hidden,'Quit is not shown on other settings tabs');AppSettingsTabs.select('general');
+      assert(!$('close-settings')&&!document.querySelector('.rail-bottom')&&!document.querySelector('footer').textContent.includes('Preview'),'leftover controls removed');
       AppNav.navigate('agents');
     }
     assert(document.querySelectorAll('.agent-row').length===8,'both intake trees and selected project descendants rendered');
